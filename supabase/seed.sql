@@ -1,0 +1,3 @@
+-- Datos de prueba — Club de Vóley
+-- TODO: insertar 1-2 sedes, categorías con horarios, un profesor y algunos
+-- alumnos de ejemplo para poder probar los endpoints en Postman/Thunder Client.

@@ -1,0 +1,13 @@
+-- Políticas de Row Level Security (RLS) — Club de Vóley
+-- TODO (equipo BD): habilitar RLS en cada tabla y definir políticas por rol.
+-- Ejemplo de forma (ajustar nombres reales de tabla/columnas):
+--
+-- alter table alumnos enable row level security;
+--
+-- create policy "admin_full_access_alumnos"
+--   on alumnos for all
+--   using (auth.jwt() ->> 'rol' = 'ADM');
+--
+-- create policy "alumno_ve_su_propio_perfil"
+--   on alumnos for select
+--   using (id = (auth.jwt() ->> 'estudianteId')::uuid);

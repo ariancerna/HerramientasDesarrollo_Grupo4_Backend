@@ -1,0 +1,22 @@
+-- Migración inicial — Club de Vóley
+-- TODO (equipo BD): crear aquí las tablas según docs/ENDPOINTS.md (sección 4).
+-- Sugerencia de tablas a partir del análisis del front (types/*.ts):
+--   usuarios (id, usuario, email, nombre, rol, estudiante_id, profesor_id, activo)
+--   sedes (id, nombre, direccion)
+--   categorias (id, nombre, descripcion)
+--   horarios (id, categoria_id, dia, hora_inicio, hora_fin, cancha, estado)
+--   profesores (id, nombre, usuario, sede_id)
+--   profesores_categorias (profesor_id, categoria_id)
+--   alumnos (id, codigo, dni, nombres, apellidos, email, telefono, categoria_id, estado, foto_url)
+--   asistencias (id, alumno_id, categoria_id, fecha, fecha_hora, metodo)
+--   pagos (id, alumno_id, periodo, monto, estado, fecha_pago, metodo_pago, codigo_operacion, vencimiento)
+--   eventos (id, titulo, fecha, hora_inicio, hora_fin, ubicacion, categoria_id, descripcion)
+--   evaluaciones (id, alumno_id, profesor_id, fecha, rendimiento_tecnico, rendimiento_fisico, actitud, observaciones)
+--   anuncios (id, profesor_id, titulo, mensaje, categoria_id, estado)
+--   anuncios_destinatarios (anuncio_id, alumno_id)
+--   notificaciones (id, usuario_id, titulo, descripcion, tipo, href, leida, creada_en)
+--   configuraciones_usuario (usuario_id, tema, notificaciones_silenciadas)
+--   configuracion_club (id, monto_mensualidad, dia_vencimiento)
+
+-- Ejemplo de extensión necesaria para generar UUIDs:
+create extension if not exists "pgcrypto";

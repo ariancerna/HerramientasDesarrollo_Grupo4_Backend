@@ -1,0 +1,4 @@
+-- Funciones / triggers de apoyo — Club de Vóley
+-- TODO: por ejemplo, un trigger que marque pagos "pendiente" -> "vencido"
+-- cuando vencimiento < current_date (regla de negocio #3 en docs/ENDPOINTS.md),
+-- programado con pg_cron.
