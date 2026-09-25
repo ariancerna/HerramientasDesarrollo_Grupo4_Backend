@@ -5,6 +5,7 @@ import morgan from 'morgan';
 import swaggerUi from 'swagger-ui-express';
 
 import { env } from './config/env';
+import { supabaseAdmin } from './config/supabase';
 import { buildOpenApiSpec } from './docs/openapi';
 import { errorMiddleware } from './middlewares/error.middleware';
 import { notFoundMiddleware } from './middlewares/not-found.middleware';
@@ -21,9 +22,26 @@ app.use(cors({ origin: env.corsOrigin, credentials: true }));
 app.use(morgan(env.nodeEnv === 'development' ? 'dev' : 'combined'));
 app.use(express.json());
 
-// SYS-01
-app.get('/api/v1/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+// SYS-01 — confirma que el servidor Y Supabase responden (no solo el proceso de Node).
+app.get('/api/v1/health', async (_req, res) => {
+  try {
+    // Llamada mínima y barata: no depende de que existan tablas todavía,
+    // solo confirma que SUPABASE_URL + SERVICE_ROLE_KEY son válidos.
+    const { error } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1 });
+    if (error) throw error;
+
+    res.json({
+      status: 'ok',
+      supabase: 'connected',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    res.status(503).json({
+      status: 'degraded',
+      supabase: 'unreachable',
+      timestamp: new Date().toISOString(),
+    });
+  }
 });
 
 // SYS-02 — Swagger UI real, generado desde src/docs/data/*.docs.ts.
