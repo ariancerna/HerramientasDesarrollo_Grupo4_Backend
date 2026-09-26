@@ -1,3 +1,4 @@
+import { ApiError } from '../../lib/errors/api-error';
 import * as repository from './sedes.repository';
 
 export async function list(filters: Record<string, unknown>) {
@@ -16,6 +17,15 @@ export async function update(id: string, payload: Record<string, unknown>) {
   return repository.update(id, payload);
 }
 
+/** SED-05 — si la sede tiene profesores asignados, la base de datos rechaza
+ *  el borrado (foreign key); lo traducimos a un 409 claro para el front. */
 export async function remove(id: string) {
-  return repository.remove(id);
+  try {
+    await repository.remove(id);
+  } catch (err: any) {
+    if (err?.code === '23503') {
+      throw ApiError.conflict('No se puede eliminar: esta sede tiene profesores asignados.');
+    }
+    throw err;
+  }
 }

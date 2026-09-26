@@ -73,3 +73,12 @@ create table if not exists password_reset_tokens (
   usado boolean not null default false,
   created_at timestamptz not null default now()
 );
+-- ============================================================
+-- Tabla necesaria para la épica SED (rama: sed)
+-- ============================================================
+create table if not exists sedes (
+  id uuid primary key default gen_random_uuid(),
+  nombre text not null,
+  direccion text,
+  created_at timestamptz not null default now()
+);
