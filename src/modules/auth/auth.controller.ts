@@ -83,7 +83,7 @@ export async function resetPassword(req: Request, res: Response, next: NextFunct
 export async function changePassword(req: Request, res: Response, next: NextFunction) {
   try {
     const { passwordActual, passwordNueva } = req.body;
-    const result = await service.changePassword(req.user!.usuario, req.user!.id, passwordActual, passwordNueva);
+    const result = await service.changePassword(req.user!.email, req.user!.id, passwordActual, passwordNueva);
     ok(res, result);
   } catch (err) {
     next(err);

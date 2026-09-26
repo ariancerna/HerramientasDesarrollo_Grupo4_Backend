@@ -1,7 +1,7 @@
 import { Router } from 'express';
 
 import authRoutes from '../modules/auth/auth.routes';
-import usuariosRoutes from '../modules/usuarios/usuarios.routes';
+import usuariosRoutes, { alumnoCuentaRoutes } from '../modules/usuarios/usuarios.routes';
 import sedesRoutes from '../modules/sedes/sedes.routes';
 import categoriasRoutes from '../modules/categorias/categorias.routes';
 import profesoresRoutes from '../modules/profesores/profesores.routes';
@@ -21,7 +21,8 @@ const router = Router();
 // Cada módulo trae sus propios roles/middlewares ya aplicados en su *.routes.ts.
 // Ver docs/ENDPOINTS.md para la tabla completa (91 endpoints).
 router.use('/auth', authRoutes);
-router.use('/', usuariosRoutes);          // expone /alumnos/:id/cuenta, /usuarios/:id/estado, /usuarios/:id/reset-password
+router.use('/usuarios', usuariosRoutes);       // expone /usuarios/:id/estado, /usuarios/:id/reset-password
+router.use('/alumnos', alumnoCuentaRoutes);    // expone POST /alumnos/:id/cuenta (USR-01)         // expone /alumnos/:id/cuenta, /usuarios/:id/estado, /usuarios/:id/reset-password
 router.use('/sedes', sedesRoutes);
 router.use('/categorias', categoriasRoutes); // incluye /categorias/:id/horarios (agregar dentro del módulo)
 router.use('/profesores', profesoresRoutes);

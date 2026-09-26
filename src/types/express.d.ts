@@ -9,7 +9,8 @@ export interface AuthUser {
   nombre: string;
   rol: Rol;
   estudianteId?: string; // solo si rol === 'ALU'
-  profesorId?: string;   // solo si rol === 'PROF'
+  profesorId?: string; 
+  email: string;  // solo si rol === 'PROF'
 }
 
 declare global {
