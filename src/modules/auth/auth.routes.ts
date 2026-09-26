@@ -2,7 +2,15 @@ import { Router } from 'express';
 import { requireAuth } from '../../middlewares/auth.middleware';
 import { validateBody } from '../../middlewares/validate.middleware';
 import * as controller from './auth.controller';
-import { loginSchema, refreshSchema } from './auth.schema';
+import {
+  changePasswordSchema,
+  forgotPasswordSchema,
+  loginSchema,
+  refreshSchema,
+  registerSchema,
+  resetPasswordSchema,
+  verifyCodeSchema,
+} from './auth.schema';
 
 const router = Router();
 
@@ -16,12 +24,15 @@ router.post('/refresh', validateBody(refreshSchema), controller.refresh);
 router.get('/me', requireAuth, controller.me);
 // AUTH-06
 router.get('/usuario-disponible', controller.usuarioDisponible);
-
-// TODO — pendientes de definir con el equipo (ver decisión #2 en docs/ENDPOINTS.md):
-// AUTH-05  POST /auth/register
-// AUTH-07  POST /auth/password/forgot
-// AUTH-08  POST /auth/password/verify
-// AUTH-09  POST /auth/password/reset
-// AUTH-10  PATCH /auth/password
+// AUTH-05 — registro por DNI (decisión #2: el alumno ya debe existir)
+router.post('/register', validateBody(registerSchema), controller.register);
+// AUTH-07
+router.post('/password/forgot', validateBody(forgotPasswordSchema), controller.forgotPassword);
+// AUTH-08
+router.post('/password/verify', validateBody(verifyCodeSchema), controller.verifyCode);
+// AUTH-09
+router.post('/password/reset', validateBody(resetPasswordSchema), controller.resetPassword);
+// AUTH-10
+router.patch('/password', requireAuth, validateBody(changePasswordSchema), controller.changePassword);
 
 export default router;
