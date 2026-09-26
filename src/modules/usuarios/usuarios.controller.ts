@@ -22,8 +22,8 @@ export async function actualizarEstado(req: Request, res: Response, next: NextFu
 
 export async function resetPassword(req: Request, res: Response, next: NextFunction) {
   try {
-    await service.resetearPassword(req.params.id, req.body.nuevaPassword);
-    res.status(204).send();
+    const data = await service.resetearPassword(req.params.id, req.body.nuevaPassword);
+    ok(res, data);
   } catch (err) {
     next(err);
   }

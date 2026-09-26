@@ -59,7 +59,12 @@ export async function actualizarEstado(usuarioId: string, activo: boolean) {
   return data;
 }
 
+export async function obtenerUsuarioPorId(usuarioId: string) {
+  const { data } = await supabaseAdmin.from(TABLE).select('*').eq('id', usuarioId).maybeSingle();
+  return data;
+}
+
 export async function resetearPassword(usuarioId: string, nuevaPassword: string) {
-  // TODO (USR-03, siguiente commit): supabaseAdmin.auth.admin.updateUserById(...)
-  throw new Error('Not implemented');
+  const { error } = await supabaseAdmin.auth.admin.updateUserById(usuarioId, { password: nuevaPassword });
+  if (error) throw error;
 }

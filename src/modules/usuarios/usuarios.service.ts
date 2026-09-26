@@ -37,6 +37,11 @@ export async function actualizarEstado(usuarioId: string, activo: boolean) {
   return repository.actualizarEstado(usuarioId, activo);
 }
 
+/** USR-03 — el admin restablece la contraseña de cualquier usuario (alumno o profesor). */
 export async function resetearPassword(usuarioId: string, nuevaPassword: string) {
-  return repository.resetearPassword(usuarioId, nuevaPassword);
+  const usuario = await repository.obtenerUsuarioPorId(usuarioId);
+  if (!usuario) throw ApiError.notFound('No existe un usuario con ese id.');
+
+  await repository.resetearPassword(usuarioId, nuevaPassword);
+  return { mensaje: 'Contraseña restablecida correctamente.' };
 }
