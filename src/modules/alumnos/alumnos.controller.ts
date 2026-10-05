@@ -53,7 +53,7 @@ export async function updateState(req: Request, res: Response, next: NextFunctio
 
 export async function remove(req: Request, res: Response, next: NextFunction) {
   try {
-    await service.remove(req.params.id);
+    await service.remove(req.user, req.params.id);
     res.status(204).send();
   } catch (err) {
     next(err);

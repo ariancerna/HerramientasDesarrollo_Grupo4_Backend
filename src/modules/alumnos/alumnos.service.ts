@@ -245,6 +245,18 @@ export async function updateState(currentUser: AuthUser | undefined, id: string,
   return repository.update(id, { estado });
 }
 
-export async function remove(id: string) {
-  return repository.remove(id);
+export async function remove(currentUser: AuthUser | undefined, id: string) {
+  if (!currentUser) throw ApiError.unauthorized();
+  if (currentUser.rol !== 'ADM') {
+    throw ApiError.forbidden('Solo un administrador puede eliminar alumnos');
+  }
+
+  const alumno = await repository.findById(id);
+  if (!alumno) throw ApiError.notFound('Alumno no encontrado');
+
+  if (alumno.estado === 'inactivo') {
+    return alumno;
+  }
+
+  return repository.update(id, { estado: 'inactivo' });
 }
