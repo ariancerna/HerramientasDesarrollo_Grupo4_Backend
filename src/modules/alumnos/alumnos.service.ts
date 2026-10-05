@@ -91,6 +91,68 @@ export async function getProfile(currentUser: AuthUser | undefined, alumnoId: st
   return perfil;
 }
 
+export async function updateProfile(currentUser: AuthUser | undefined, alumnoId: string, payload: Record<string, unknown>) {
+  if (!currentUser) throw ApiError.unauthorized();
+  if (currentUser.rol !== 'ALU' || currentUser.estudianteId !== alumnoId) {
+    throw ApiError.forbidden('Solo puedes actualizar tu propio perfil');
+  }
+
+  const forbiddenFields = ['id', 'dni', 'codigo', 'categoriaId', 'estado', 'password'];
+  const forbidden = Object.keys(payload).find((field) => forbiddenFields.includes(field));
+  if (forbidden) {
+    throw ApiError.badRequest(`No se permite modificar el campo ${forbidden}`);
+  }
+
+  const allowedFields = ['nombres', 'apellidos', 'email', 'telefono'];
+  const invalidFields = Object.keys(payload).filter((field) => !allowedFields.includes(field));
+  if (invalidFields.length > 0) {
+    throw ApiError.badRequest(`Campos no permitidos: ${invalidFields.join(', ')}`);
+  }
+
+  const alumno = await repository.findById(alumnoId);
+  if (!alumno) throw ApiError.notFound('Perfil no encontrado');
+
+  const updatePayload: Record<string, unknown> = {};
+
+  if (payload.nombres !== undefined) {
+    const nombres = String(payload.nombres).trim();
+    if (!nombres) throw ApiError.badRequest('Los nombres son obligatorios');
+    updatePayload.nombres = nombres;
+  }
+
+  if (payload.apellidos !== undefined) {
+    const apellidos = String(payload.apellidos).trim();
+    if (!apellidos) throw ApiError.badRequest('Los apellidos son obligatorios');
+    updatePayload.apellidos = apellidos;
+  }
+
+  if (payload.email !== undefined) {
+    const email = String(payload.email).trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw ApiError.badRequest('El email no es válido');
+    }
+    if (alumno.email !== email) {
+      const existente = await repository.findByEmail(email);
+      if (existente) throw ApiError.conflict('Email ya registrado');
+    }
+    updatePayload.email = email;
+  }
+
+  if (payload.telefono !== undefined) {
+    const telefono = String(payload.telefono);
+    if (!/^\d{9}$/.test(telefono)) {
+      throw ApiError.badRequest('El teléfono debe tener exactamente 9 dígitos');
+    }
+    updatePayload.telefono = telefono;
+  }
+
+  if (Object.keys(updatePayload).length === 0) {
+    return alumno;
+  }
+
+  return repository.update(alumnoId, updatePayload);
+}
+
 export async function create(currentUser: AuthUser | undefined, payload: Record<string, unknown>) {
   if (!currentUser) throw ApiError.unauthorized();
   if (currentUser.rol !== 'ADM') {

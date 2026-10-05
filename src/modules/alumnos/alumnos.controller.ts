@@ -80,7 +80,7 @@ export async function updateProfile(req: Request, res: Response, next: NextFunct
       return next(ApiError.forbidden('Este usuario no tiene un perfil de alumno asociado'));
     }
 
-    ok(res, await service.updateProfile(alumnoId, req.body));
+    ok(res, await service.updateProfile(req.user, alumnoId, req.body));
   } catch (err) {
     next(err);
   }
