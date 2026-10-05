@@ -15,3 +15,19 @@ export const crearAlumnoSchema = z.object({
 });
 
 export const actualizarAlumnoSchema = crearAlumnoSchema.partial();
+
+export const cambiarEstadoAlumnoSchema = z.object({
+  estado: z.enum(['activo', 'inactivo'], {
+    required_error: 'El estado es obligatorio',
+    invalid_type_error: 'El estado debe ser activo o inactivo',
+  }),
+});
+
+export const actualizarPerfilAlumnoSchema = z.object({
+  nombres: z.string().trim().min(1, 'Los nombres son obligatorios').optional(),
+  apellidos: z.string().trim().min(1, 'Los apellidos son obligatorios').optional(),
+  email: z.string().trim().email('El email no es válido').optional(),
+  telefono: z.string().regex(/^\d{9}$/, 'El teléfono debe tener exactamente 9 dígitos').optional(),
+}).refine((data) => Object.keys(data).length > 0, {
+  message: 'Debes enviar al menos un campo para actualizar el perfil',
+});

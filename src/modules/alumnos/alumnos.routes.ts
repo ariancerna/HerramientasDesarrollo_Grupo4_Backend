@@ -4,7 +4,12 @@ import { requireRole } from '../../middlewares/role.middleware';
 import { validateBody } from '../../middlewares/validate.middleware';
 import { upload } from '../../middlewares/upload.middleware';
 import * as controller from './alumnos.controller';
-import { actualizarAlumnoSchema, crearAlumnoSchema } from './alumnos.schema';
+import {
+  actualizarAlumnoSchema,
+  actualizarPerfilAlumnoSchema,
+  cambiarEstadoAlumnoSchema,
+  crearAlumnoSchema,
+} from './alumnos.schema';
 
 const router = Router();
 
@@ -12,7 +17,7 @@ const router = Router();
 router.get('/me/perfil', requireAuth, requireRole('ALU'), controller.getProfile);
 
 // ALU-09: Actualizar mi perfil
-router.patch('/me/perfil', requireAuth, requireRole('ALU'), controller.updateProfile);
+router.patch('/me/perfil', requireAuth, requireRole('ALU'), validateBody(actualizarPerfilAlumnoSchema), controller.updateProfile);
 
 // ALU-10: Subir foto de perfil
 router.put('/me/perfil/foto', requireAuth, requireRole('ALU'), upload.single('foto'), controller.uploadProfilePhoto);
@@ -33,7 +38,7 @@ router.post('/', requireAuth, requireRole('ADM'), validateBody(crearAlumnoSchema
 router.put('/:id', requireAuth, requireRole('ADM'), validateBody(actualizarAlumnoSchema), controller.update);
 
 // ALU-06: Cambiar estado
-router.patch('/:id/estado', requireAuth, requireRole('ADM'), controller.updateState);
+router.patch('/:id/estado', requireAuth, requireRole('ADM'), validateBody(cambiarEstadoAlumnoSchema), controller.updateState);
 
 // ALU-07: Eliminar alumno
 router.delete('/:id', requireAuth, requireRole('ADM'), controller.remove);
