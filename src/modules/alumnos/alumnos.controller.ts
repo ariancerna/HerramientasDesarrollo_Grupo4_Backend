@@ -5,7 +5,7 @@ import * as service from './alumnos.service';
 
 export async function list(req: Request, res: Response, next: NextFunction) {
   try {
-    ok(res, await service.list(req.query));
+    ok(res, await service.list(req.user, req.query));
   } catch (err) {
     next(err);
   }
