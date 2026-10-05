@@ -77,6 +77,44 @@ export async function findByDni(dni: string) {
   return data ?? null;
 }
 
+export async function findProfileByAlumnoId(alumnoId: string) {
+  const { data, error } = await supabaseAdmin
+    .from(TABLE)
+    .select(`
+      id,
+      nombres,
+      apellidos,
+      dni,
+      codigo,
+      email,
+      telefono,
+      estado,
+      foto_url,
+      categoria_id,
+      categorias:categoria_id (id, nombre)
+    `)
+    .eq('id', alumnoId)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return null;
+
+  const categoria = Array.isArray(data.categorias) ? data.categorias[0] : data.categorias;
+
+  return {
+    id: data.id,
+    nombres: data.nombres,
+    apellidos: data.apellidos,
+    dni: data.dni,
+    codigo: data.codigo,
+    email: data.email,
+    telefono: data.telefono,
+    estado: data.estado,
+    categoria: categoria?.nombre ?? null,
+    foto_url: data.foto_url,
+  };
+}
+
 export async function findByCodigo(codigo: string) {
   const { data, error } = await supabaseAdmin
     .from(TABLE)

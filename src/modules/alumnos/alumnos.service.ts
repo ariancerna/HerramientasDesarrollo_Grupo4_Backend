@@ -79,6 +79,18 @@ export async function getByDni(currentUser: AuthUser | undefined, dni: string) {
   return alumno;
 }
 
+export async function getProfile(currentUser: AuthUser | undefined, alumnoId: string) {
+  if (!currentUser) throw ApiError.unauthorized();
+  if (!currentUser.estudianteId || currentUser.estudianteId !== alumnoId) {
+    throw ApiError.forbidden('Solo puedes consultar tu propio perfil');
+  }
+
+  const perfil = await repository.findProfileByAlumnoId(alumnoId);
+  if (!perfil) throw ApiError.notFound('Perfil no encontrado');
+
+  return perfil;
+}
+
 export async function create(currentUser: AuthUser | undefined, payload: Record<string, unknown>) {
   if (!currentUser) throw ApiError.unauthorized();
   if (currentUser.rol !== 'ADM') {

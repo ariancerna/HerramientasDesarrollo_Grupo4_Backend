@@ -67,7 +67,7 @@ export async function getProfile(req: Request, res: Response, next: NextFunction
       return next(ApiError.forbidden('Este usuario no tiene un perfil de alumno asociado'));
     }
 
-    ok(res, await service.getProfile(alumnoId));
+    ok(res, await service.getProfile(req.user, alumnoId));
   } catch (err) {
     next(err);
   }
