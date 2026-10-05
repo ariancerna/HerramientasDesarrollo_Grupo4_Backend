@@ -17,7 +17,7 @@ export async function findCategoriaIdsByProfesor(profesorId?: string) {
 export async function findAll(filters: Record<string, unknown> = {}) {
   let query = supabaseAdmin
     .from(TABLE)
-    .select('*', { count: 'exact' });
+    .select('*, categorias(*)', { count: 'exact' });
 
   if (typeof filters.texto === 'string' && filters.texto.trim()) {
     const texto = filters.texto.trim();
@@ -158,6 +158,39 @@ export async function update(id: string, payload: Record<string, unknown>) {
   const { data, error } = await supabaseAdmin.from(TABLE).update(payload).eq('id', id).select().single();
   if (error) throw error;
   return data;
+}
+
+export async function updateProfile(id: string, payload: Record<string, unknown>) {
+  return update(id, payload);
+}
+
+export async function updateState(id: string, payload: Record<string, unknown>) {
+  return update(id, payload);
+}
+
+export async function softDelete(id: string) {
+  return update(id, { estado: 'inactivo' });
+}
+
+export async function updatePhoto(id: string, fotoUrl: string) {
+  return update(id, { foto_url: fotoUrl });
+}
+
+export async function deletePhoto(id: string) {
+  return update(id, { foto_url: null });
+}
+
+export async function findByUserId(userId: string) {
+  const { data: usuario, error: usuarioError } = await supabaseAdmin
+    .from('usuarios')
+    .select('estudiante_id')
+    .eq('id', userId)
+    .maybeSingle();
+
+  if (usuarioError) throw usuarioError;
+  if (!usuario?.estudiante_id) return null;
+
+  return findById(usuario.estudiante_id);
 }
 
 export async function uploadProfilePhoto(alumnoId: string, file: Express.Multer.File) {

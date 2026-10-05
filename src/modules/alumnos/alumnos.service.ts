@@ -150,7 +150,7 @@ export async function updateProfile(currentUser: AuthUser | undefined, alumnoId:
     return alumno;
   }
 
-  return repository.update(alumnoId, updatePayload);
+  return repository.updateProfile(alumnoId, updatePayload);
 }
 
 export async function create(currentUser: AuthUser | undefined, payload: Record<string, unknown>) {
@@ -316,7 +316,7 @@ export async function updateState(currentUser: AuthUser | undefined, id: string,
   const alumno = await repository.findById(id);
   if (!alumno) throw ApiError.notFound('Alumno no encontrado');
 
-  return repository.update(id, { estado });
+  return repository.updateState(id, { estado });
 }
 
 export async function remove(currentUser: AuthUser | undefined, id: string) {
@@ -332,7 +332,7 @@ export async function remove(currentUser: AuthUser | undefined, id: string) {
     return alumno;
   }
 
-  return repository.update(id, { estado: 'inactivo' });
+  return repository.softDelete(id);
 }
 
 export async function uploadProfilePhoto(alumnoId: string, file: Express.Multer.File | undefined) {
@@ -344,7 +344,7 @@ export async function uploadProfilePhoto(alumnoId: string, file: Express.Multer.
   if (!alumno) throw ApiError.notFound('Perfil no encontrado');
 
   const publicUrl = await repository.uploadProfilePhoto(alumnoId, file);
-  await repository.update(alumnoId, { foto_url: publicUrl });
+  await repository.updatePhoto(alumnoId, publicUrl);
 
   return { fotoUrl: publicUrl };
 }
@@ -359,6 +359,6 @@ export async function deleteProfilePhoto(currentUser: AuthUser | undefined, alum
   if (!alumno) throw ApiError.notFound('Perfil no encontrado');
 
   await repository.deleteProfilePhoto(alumnoId);
-  await repository.update(alumnoId, { foto_url: null });
+  await repository.deletePhoto(alumnoId);
 }
 
