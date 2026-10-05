@@ -77,6 +77,39 @@ export async function findByDni(dni: string) {
   return data ?? null;
 }
 
+export async function findByCodigo(codigo: string) {
+  const { data, error } = await supabaseAdmin
+    .from(TABLE)
+    .select('id')
+    .eq('codigo', codigo)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ?? null;
+}
+
+export async function findByEmail(email: string) {
+  const { data, error } = await supabaseAdmin
+    .from(TABLE)
+    .select('id')
+    .ilike('email', email)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ?? null;
+}
+
+export async function findCategoriaById(id: string) {
+  const { data, error } = await supabaseAdmin
+    .from('categorias')
+    .select('id')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ?? null;
+}
+
 export async function create(payload: Record<string, unknown>) {
   const { data, error } = await supabaseAdmin.from(TABLE).insert(payload).select().single();
   if (error) throw error;

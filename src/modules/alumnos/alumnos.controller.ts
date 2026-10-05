@@ -29,7 +29,7 @@ export async function getByDni(req: Request, res: Response, next: NextFunction) 
 
 export async function create(req: Request, res: Response, next: NextFunction) {
   try {
-    created(res, await service.create(req.body));
+    created(res, await service.create(req.user, req.body));
   } catch (err) {
     next(err);
   }
