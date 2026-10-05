@@ -28,6 +28,4 @@ export const actualizarPerfilAlumnoSchema = z.object({
   apellidos: z.string().trim().min(1, 'Los apellidos son obligatorios').optional(),
   email: z.string().trim().email('El email no es válido').optional(),
   telefono: z.string().regex(/^\d{9}$/, 'El teléfono debe tener exactamente 9 dígitos').optional(),
-}).refine((data) => Object.keys(data).length > 0, {
-  message: 'Debes enviar al menos un campo para actualizar el perfil',
 });
