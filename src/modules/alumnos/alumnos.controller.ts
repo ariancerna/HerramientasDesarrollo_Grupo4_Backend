@@ -106,7 +106,8 @@ export async function deleteProfilePhoto(req: Request, res: Response, next: Next
       return next(ApiError.forbidden('Este usuario no tiene un perfil de alumno asociado'));
     }
 
-    ok(res, await service.deleteProfilePhoto(alumnoId));
+    await service.deleteProfilePhoto(req.user, alumnoId);
+    res.status(204).send();
   } catch (err) {
     next(err);
   }

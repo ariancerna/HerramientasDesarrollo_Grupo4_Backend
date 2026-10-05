@@ -349,12 +349,16 @@ export async function uploadProfilePhoto(alumnoId: string, file: Express.Multer.
   return { fotoUrl: publicUrl };
 }
 
-export async function deleteProfilePhoto(alumnoId: string) {
+export async function deleteProfilePhoto(currentUser: AuthUser | undefined, alumnoId: string) {
+  if (!currentUser) throw ApiError.unauthorized();
+  if (currentUser.rol !== 'ALU' || currentUser.estudianteId !== alumnoId) {
+    throw ApiError.forbidden('Solo puedes eliminar tu propia foto de perfil');
+  }
+
   const alumno = await repository.findById(alumnoId);
   if (!alumno) throw ApiError.notFound('Perfil no encontrado');
 
   await repository.deleteProfilePhoto(alumnoId);
   await repository.update(alumnoId, { foto_url: null });
-
-  return { fotoUrl: null };
 }
+
