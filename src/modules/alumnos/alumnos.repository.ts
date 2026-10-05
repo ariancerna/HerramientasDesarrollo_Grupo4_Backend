@@ -160,6 +160,29 @@ export async function update(id: string, payload: Record<string, unknown>) {
   return data;
 }
 
+export async function uploadProfilePhoto(alumnoId: string, file: Express.Multer.File) {
+  const extension = file.originalname.includes('.')
+    ? file.originalname.split('.').pop()?.toLowerCase() ?? 'jpg'
+    : 'jpg';
+  const normalizedExtension = extension === 'jpg' ? 'jpg' : extension;
+  const path = `${alumnoId}/foto.${normalizedExtension}`;
+
+  const { error } = await supabaseAdmin.storage.from('avatares').upload(path, file.buffer, {
+    contentType: file.mimetype,
+    upsert: true,
+  });
+
+  if (error) throw error;
+
+  const { data } = supabaseAdmin.storage.from('avatares').getPublicUrl(path);
+  return data.publicUrl;
+}
+
+export async function deleteProfilePhoto(alumnoId: string) {
+  const { error } = await supabaseAdmin.storage.from('avatares').remove([`${alumnoId}/foto.jpg`, `${alumnoId}/foto.png`, `${alumnoId}/foto.webp`]);
+  if (error) throw error;
+}
+
 export async function remove(id: string) {
   const { error } = await supabaseAdmin.from(TABLE).delete().eq('id', id);
   if (error) throw error;

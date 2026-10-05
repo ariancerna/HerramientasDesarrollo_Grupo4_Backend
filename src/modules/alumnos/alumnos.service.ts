@@ -334,3 +334,27 @@ export async function remove(currentUser: AuthUser | undefined, id: string) {
 
   return repository.update(id, { estado: 'inactivo' });
 }
+
+export async function uploadProfilePhoto(alumnoId: string, file: Express.Multer.File | undefined) {
+  if (!file) {
+    throw ApiError.badRequest('Debes adjuntar una imagen');
+  }
+
+  const alumno = await repository.findById(alumnoId);
+  if (!alumno) throw ApiError.notFound('Perfil no encontrado');
+
+  const publicUrl = await repository.uploadProfilePhoto(alumnoId, file);
+  await repository.update(alumnoId, { foto_url: publicUrl });
+
+  return { fotoUrl: publicUrl };
+}
+
+export async function deleteProfilePhoto(alumnoId: string) {
+  const alumno = await repository.findById(alumnoId);
+  if (!alumno) throw ApiError.notFound('Perfil no encontrado');
+
+  await repository.deleteProfilePhoto(alumnoId);
+  await repository.update(alumnoId, { foto_url: null });
+
+  return { fotoUrl: null };
+}
