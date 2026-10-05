@@ -53,8 +53,17 @@ export async function list(currentUser: AuthUser | undefined, filters: Record<st
   });
 }
 
-export async function getById(id: string) {
-  return repository.findById(id);
+export async function getById(currentUser: AuthUser | undefined, id: string) {
+  if (!currentUser) throw ApiError.unauthorized();
+
+  const alumno = await repository.findById(id);
+  if (!alumno) throw ApiError.notFound('Alumno no encontrado');
+
+  if (currentUser.rol === 'ALU' && currentUser.estudianteId !== alumno.id) {
+    throw ApiError.forbidden('No tienes acceso a este alumno');
+  }
+
+  return alumno;
 }
 
 export async function create(payload: Record<string, unknown>) {

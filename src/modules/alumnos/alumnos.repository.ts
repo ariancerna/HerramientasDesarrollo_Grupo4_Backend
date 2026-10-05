@@ -57,8 +57,13 @@ export async function findAll(filters: Record<string, unknown> = {}) {
 
 export async function findById(id: string) {
   const { data, error } = await supabaseAdmin.from(TABLE).select('*').eq('id', id).single();
-  if (error) throw error;
-  return data;
+
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    throw error;
+  }
+
+  return data ?? null;
 }
 
 export async function create(payload: Record<string, unknown>) {

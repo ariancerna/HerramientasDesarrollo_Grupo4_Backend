@@ -13,7 +13,7 @@ export async function list(req: Request, res: Response, next: NextFunction) {
 
 export async function getById(req: Request, res: Response, next: NextFunction) {
   try {
-    ok(res, await service.getById(req.params.id));
+    ok(res, await service.getById(req.user, req.params.id));
   } catch (err) {
     next(err);
   }
