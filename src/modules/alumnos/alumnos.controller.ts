@@ -45,7 +45,7 @@ export async function update(req: Request, res: Response, next: NextFunction) {
 
 export async function updateState(req: Request, res: Response, next: NextFunction) {
   try {
-    ok(res, await service.updateState(req.params.id, req.body));
+    ok(res, await service.updateState(req.user, req.params.id, req.body));
   } catch (err) {
     next(err);
   }

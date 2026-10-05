@@ -228,6 +228,23 @@ export async function update(currentUser: AuthUser | undefined, id: string, payl
   return repository.update(id, updatePayload);
 }
 
+export async function updateState(currentUser: AuthUser | undefined, id: string, payload: Record<string, unknown>) {
+  if (!currentUser) throw ApiError.unauthorized();
+  if (currentUser.rol !== 'ADM') {
+    throw ApiError.forbidden('Solo un administrador puede cambiar el estado del alumno');
+  }
+
+  const estado = payload.estado;
+  if (estado !== 'activo' && estado !== 'inactivo') {
+    throw ApiError.badRequest('El estado debe ser "activo" o "inactivo"');
+  }
+
+  const alumno = await repository.findById(id);
+  if (!alumno) throw ApiError.notFound('Alumno no encontrado');
+
+  return repository.update(id, { estado });
+}
+
 export async function remove(id: string) {
   return repository.remove(id);
 }
