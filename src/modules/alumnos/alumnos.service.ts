@@ -134,8 +134,98 @@ export async function create(currentUser: AuthUser | undefined, payload: Record<
   });
 }
 
-export async function update(id: string, payload: Record<string, unknown>) {
-  return repository.update(id, payload);
+export async function update(currentUser: AuthUser | undefined, id: string, payload: Record<string, unknown>) {
+  if (!currentUser) throw ApiError.unauthorized();
+  if (currentUser.rol !== 'ADM') {
+    throw ApiError.forbidden('Solo un administrador puede editar alumnos');
+  }
+
+  const forbiddenFields = ['id', 'password', 'estado'];
+  const forbidden = Object.keys(payload).find((field) => forbiddenFields.includes(field));
+  if (forbidden) {
+    throw ApiError.badRequest(`No se permite modificar el campo ${forbidden}`);
+  }
+
+  const allowedFields = ['nombres', 'apellidos', 'dni', 'email', 'telefono', 'codigo', 'categoriaId'];
+  const invalidFields = Object.keys(payload).filter((field) => !allowedFields.includes(field));
+  if (invalidFields.length > 0) {
+    throw ApiError.badRequest(`Campos no permitidos: ${invalidFields.join(', ')}`);
+  }
+
+  const alumno = await repository.findById(id);
+  if (!alumno) throw ApiError.notFound('Alumno no encontrado');
+
+  const updatePayload: Record<string, unknown> = {};
+
+  if (payload.nombres !== undefined) {
+    const nombres = String(payload.nombres).trim();
+    if (!nombres) throw ApiError.badRequest('Los nombres son obligatorios');
+    updatePayload.nombres = nombres;
+  }
+
+  if (payload.apellidos !== undefined) {
+    const apellidos = String(payload.apellidos).trim();
+    if (!apellidos) throw ApiError.badRequest('Los apellidos son obligatorios');
+    updatePayload.apellidos = apellidos;
+  }
+
+  if (payload.dni !== undefined) {
+    const dni = String(payload.dni);
+    if (!/^\d{8}$/.test(dni)) {
+      throw ApiError.badRequest('El DNI debe tener exactamente 8 dígitos');
+    }
+    if (alumno.dni !== dni) {
+      const existente = await repository.findByDni(dni);
+      if (existente) throw ApiError.conflict('DNI ya registrado');
+    }
+    updatePayload.dni = dni;
+  }
+
+  if (payload.email !== undefined) {
+    const email = String(payload.email).trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw ApiError.badRequest('El email no es válido');
+    }
+    if (alumno.email !== email) {
+      const existente = await repository.findByEmail(email);
+      if (existente) throw ApiError.conflict('Email ya registrado');
+    }
+    updatePayload.email = email;
+  }
+
+  if (payload.telefono !== undefined) {
+    const telefono = String(payload.telefono);
+    if (!/^\d{9}$/.test(telefono)) {
+      throw ApiError.badRequest('El teléfono debe tener exactamente 9 dígitos');
+    }
+    updatePayload.telefono = telefono;
+  }
+
+  if (payload.codigo !== undefined) {
+    const codigo = String(payload.codigo).trim();
+    if (!codigo) throw ApiError.badRequest('El código es obligatorio');
+    if (alumno.codigo !== codigo) {
+      const existente = await repository.findByCodigo(codigo);
+      if (existente) throw ApiError.conflict('Código ya registrado');
+    }
+    updatePayload.codigo = codigo;
+  }
+
+  if (payload.categoriaId !== undefined) {
+    const categoriaId = String(payload.categoriaId);
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(categoriaId)) {
+      throw ApiError.badRequest('La categoría no es un UUID válido');
+    }
+    const categoria = await repository.findCategoriaById(categoriaId);
+    if (!categoria) throw ApiError.badRequest('La categoría especificada no existe');
+    updatePayload.categoria_id = categoriaId;
+  }
+
+  if (Object.keys(updatePayload).length === 0) {
+    return alumno;
+  }
+
+  return repository.update(id, updatePayload);
 }
 
 export async function remove(id: string) {

@@ -37,7 +37,7 @@ export async function create(req: Request, res: Response, next: NextFunction) {
 
 export async function update(req: Request, res: Response, next: NextFunction) {
   try {
-    ok(res, await service.update(req.params.id, req.body));
+    ok(res, await service.update(req.user, req.params.id, req.body));
   } catch (err) {
     next(err);
   }
