@@ -21,7 +21,7 @@ export async function getById(req: Request, res: Response, next: NextFunction) {
 
 export async function getByDni(req: Request, res: Response, next: NextFunction) {
   try {
-    ok(res, await service.getByDni(req.params.dni));
+    ok(res, await service.getByDni(req.user, req.params.dni));
   } catch (err) {
     next(err);
   }

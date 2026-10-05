@@ -66,6 +66,17 @@ export async function findById(id: string) {
   return data ?? null;
 }
 
+export async function findByDni(dni: string) {
+  const { data, error } = await supabaseAdmin
+    .from(TABLE)
+    .select('*')
+    .eq('dni', dni)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data ?? null;
+}
+
 export async function create(payload: Record<string, unknown>) {
   const { data, error } = await supabaseAdmin.from(TABLE).insert(payload).select().single();
   if (error) throw error;

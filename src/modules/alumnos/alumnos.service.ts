@@ -66,6 +66,19 @@ export async function getById(currentUser: AuthUser | undefined, id: string) {
   return alumno;
 }
 
+export async function getByDni(currentUser: AuthUser | undefined, dni: string) {
+  if (!currentUser) throw ApiError.unauthorized();
+
+  if (currentUser.rol === 'ALU') {
+    throw ApiError.forbidden('Los alumnos no pueden buscar alumnos por DNI');
+  }
+
+  const alumno = await repository.findByDni(dni);
+  if (!alumno) throw ApiError.notFound('Alumno no encontrado');
+
+  return alumno;
+}
+
 export async function create(payload: Record<string, unknown>) {
   return repository.create(payload);
 }
