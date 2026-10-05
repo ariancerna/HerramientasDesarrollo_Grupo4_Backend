@@ -23,13 +23,17 @@ function construirOperacion(endpoint: EndpointDoc, tag: string) {
       endpoint.implementado ? '' : '\n\n⚠️ Este endpoint todavía no está implementado en el backend.'
     }`,
     operationId: endpoint.id,
-    parameters: params.map((nombre) => ({
-      name: nombre,
-      in: 'path',
-      required: true,
-      schema: { type: 'string' },
-    })),
-    responses: {
+    parameters: [
+      ...params.map((nombre) => ({
+        name: nombre,
+        in: 'path',
+        required: true,
+        schema: { type: 'string' },
+      })),
+      ...(endpoint.parameters ?? []),
+      ...(endpoint.queryParams ?? []),
+    ],
+    responses: endpoint.responses ?? {
       '200': { description: 'OK' },
       '400': { description: 'Solicitud inválida' },
       '401': { description: 'No autenticado' },
@@ -38,9 +42,9 @@ function construirOperacion(endpoint: EndpointDoc, tag: string) {
     },
   };
 
-  if (metodosConBody.includes(endpoint.metodo)) {
-    // TODO: reemplazar este schema genérico por el real de cada módulo
-    // (usando el *.schema.ts de Zod correspondiente) cuando se programe.
+  if (metodosConBody.includes(endpoint.metodo) && endpoint.requestBody) {
+    operacion.requestBody = endpoint.requestBody;
+  } else if (metodosConBody.includes(endpoint.metodo)) {
     operacion.requestBody = {
       required: false,
       content: {
