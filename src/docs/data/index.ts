@@ -14,6 +14,7 @@ import './sys.docs';
 import './auth.docs';
 import './usuarios.docs';
 import './sedes.docs';
+import './dashboard.docs';
 
 // TODO equipo — agregar aquí cuando cada quien programe su módulo:
 // import './categorias.docs';
@@ -26,5 +27,4 @@ import './sedes.docs';
 // import './anuncios.docs';
 // import './notificaciones.docs';
 // import './reportes.docs';
-// import './dashboard.docs';
 // import './configuracion.docs';
