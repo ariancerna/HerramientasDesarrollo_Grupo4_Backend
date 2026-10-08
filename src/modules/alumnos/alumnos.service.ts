@@ -17,7 +17,7 @@ async function validarAccesoAlumno(currentUser: AuthUser, alumno: { id: string; 
   }
 
   if (currentUser.rol === 'PROF') {
-    const categoriaIds = await repository.findCategoriaIdsByProfesor(currentUser.profesorId);
+    const categoriaIds = await repository.findCategoriaIdsByProfesor(currentUser.profesorId ?? currentUser.id);
     if (!alumno.categoria_id || !categoriaIds.includes(alumno.categoria_id)) {
       throw ApiError.forbidden('Solo puedes consultar alumnos de tus categorías asignadas');
     }
@@ -43,7 +43,7 @@ export async function list(currentUser: AuthUser | undefined, filters: Record<st
 
   const pagination = getPagination({ query: normalizedFilters } as never, 20, 100);
   const categoriaIds = currentUser.rol === 'PROF'
-    ? await repository.findCategoriaIdsByProfesor(currentUser.profesorId)
+    ? await repository.findCategoriaIdsByProfesor(currentUser.profesorId ?? currentUser.id)
     : [];
 
   if (currentUser.rol === 'PROF' && categoriaIds.length === 0) {
