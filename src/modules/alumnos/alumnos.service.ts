@@ -11,6 +11,19 @@ export interface ListAlumnosFilters {
   limit?: number;
 }
 
+async function validarAccesoAlumno(currentUser: AuthUser, alumno: { id: string; categoria_id: string | null }) {
+  if (currentUser.rol === 'ALU' && currentUser.estudianteId !== alumno.id) {
+    throw ApiError.forbidden('No tienes acceso a este alumno');
+  }
+
+  if (currentUser.rol === 'PROF') {
+    const categoriaIds = await repository.findCategoriaIdsByProfesor(currentUser.profesorId);
+    if (!alumno.categoria_id || !categoriaIds.includes(alumno.categoria_id)) {
+      throw ApiError.forbidden('Solo puedes consultar alumnos de tus categorías asignadas');
+    }
+  }
+}
+
 export async function list(currentUser: AuthUser | undefined, filters: Record<string, unknown>) {
   if (!currentUser) throw ApiError.unauthorized();
 
@@ -59,10 +72,7 @@ export async function getById(currentUser: AuthUser | undefined, id: string) {
   const alumno = await repository.findById(id);
   if (!alumno) throw ApiError.notFound('Alumno no encontrado');
 
-  if (currentUser.rol === 'ALU' && currentUser.estudianteId !== alumno.id) {
-    throw ApiError.forbidden('No tienes acceso a este alumno');
-  }
-
+  await validarAccesoAlumno(currentUser, alumno);
   return alumno;
 }
 
@@ -76,6 +86,7 @@ export async function getByDni(currentUser: AuthUser | undefined, dni: string) {
   const alumno = await repository.findByDni(dni);
   if (!alumno) throw ApiError.notFound('Alumno no encontrado');
 
+  await validarAccesoAlumno(currentUser, alumno);
   return alumno;
 }
 
