@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '../../config/supabase';
+import { ApiError } from '../../lib/errors/api-error';
 
 const TABLE = 'alumnos';
 
@@ -194,11 +195,12 @@ export async function findByUserId(userId: string) {
 }
 
 export async function uploadProfilePhoto(alumnoId: string, file: Express.Multer.File) {
-  const extension = file.originalname.includes('.')
-    ? file.originalname.split('.').pop()?.toLowerCase() ?? 'jpg'
-    : 'jpg';
-  const normalizedExtension = extension === 'jpg' ? 'jpg' : extension;
-  const path = `${alumnoId}/foto.${normalizedExtension}`;
+  const extensiones: Record<string, string> = {
+    'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp',
+  };
+  const extension = extensiones[file.mimetype];
+  if (!extension) throw ApiError.badRequest('Solo se admiten imágenes JPEG, PNG o WebP');
+  const path = `${alumnoId}/foto.${extension}`;
 
   const { error } = await supabaseAdmin.storage.from('avatares').upload(path, file.buffer, {
     contentType: file.mimetype,
@@ -212,7 +214,9 @@ export async function uploadProfilePhoto(alumnoId: string, file: Express.Multer.
 }
 
 export async function deleteProfilePhoto(alumnoId: string) {
-  const { error } = await supabaseAdmin.storage.from('avatares').remove([`${alumnoId}/foto.jpg`, `${alumnoId}/foto.png`, `${alumnoId}/foto.webp`]);
+  const { error } = await supabaseAdmin.storage.from('avatares').remove([
+    `${alumnoId}/foto.jpg`, `${alumnoId}/foto.jpeg`, `${alumnoId}/foto.png`, `${alumnoId}/foto.webp`,
+  ]);
   if (error) throw error;
 }
 

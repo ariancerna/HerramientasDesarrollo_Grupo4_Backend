@@ -205,7 +205,18 @@ registerDocs({
       acceso: 'ALU',
       implementado: true,
       requestBody: { required: true, content: { 'multipart/form-data': { schema: photoUploadBody } } },
-      responses: { '200': { description: 'Foto de perfil actualizada', content: { 'application/json': { schema: { type: 'object', properties: { data: { type: 'object', properties: { fotoUrl: { type: 'string' } } } } } } } } },
+      responses: {
+        '200': {
+          description: 'Foto de perfil actualizada',
+          content: { 'application/json': { schema: {
+            type: 'object',
+            properties: { data: {
+              type: 'object', properties: { fotoUrl: { type: 'string', format: 'uri' } },
+            } },
+          } } },
+        },
+        '413': { description: 'La imagen supera el límite de 1.5 MB' },
+      },
     },
     {
       id: 'ALU-11',
