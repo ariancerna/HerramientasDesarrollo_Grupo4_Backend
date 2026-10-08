@@ -21,6 +21,17 @@ const alumnoSchema = {
   additionalProperties: false,
 };
 
+const alumnoResponseSchema = { type: 'object', properties: { data: alumnoSchema } };
+const perfilResponseSchema = {
+  type: 'object',
+  properties: { data: { type: 'object', properties: {
+    id: alumnoFields.id, nombres: alumnoFields.nombres, apellidos: alumnoFields.apellidos,
+    dni: alumnoFields.dni, codigo: alumnoFields.codigo, email: alumnoFields.email,
+    telefono: alumnoFields.telefono, estado: alumnoFields.estado, foto_url: alumnoFields.foto_url,
+    categoria: { type: 'string', nullable: true, description: 'Nombre de la categoría' },
+  } } },
+};
+
 const paginationParams: OpenApiParameter[] = [
   { name: 'page', in: 'query', required: false, schema: { type: 'integer', minimum: 1, default: 1 } },
   { name: 'limit', in: 'query', required: false, schema: { type: 'integer', minimum: 1, maximum: 100, default: 20 } },
@@ -28,14 +39,14 @@ const paginationParams: OpenApiParameter[] = [
 
 const listQueryParams: OpenApiParameter[] = [
   { name: 'texto', in: 'query', required: false, schema: { type: 'string' } },
-  { name: 'categoria_id', in: 'query', required: false, schema: { type: 'string', format: 'uuid' } },
+  { name: 'categoriaId', in: 'query', required: false, schema: { type: 'string', format: 'uuid' } },
   { name: 'estado', in: 'query', required: false, schema: { type: 'string', enum: ['activo', 'inactivo'] } },
   ...paginationParams,
 ];
 
 const createAlumnoBody = {
   type: 'object',
-  required: ['dni', 'nombres', 'apellidos', 'email', 'codigo', 'categoria_id'],
+  required: ['dni', 'nombres', 'apellidos', 'email', 'codigo', 'categoriaId'],
   properties: {
     dni: alumnoFields.dni,
     nombres: alumnoFields.nombres,
@@ -43,7 +54,7 @@ const createAlumnoBody = {
     email: alumnoFields.email,
     codigo: alumnoFields.codigo,
     telefono: alumnoFields.telefono,
-    categoria_id: alumnoFields.categoria_id,
+    categoriaId: { type: 'string', format: 'uuid', description: 'Categoría del alumno' },
     estado: { ...alumnoFields.estado, default: 'activo' },
   },
   additionalProperties: false,
@@ -51,7 +62,11 @@ const createAlumnoBody = {
 
 const updateAlumnoBody = {
   type: 'object',
-  properties: createAlumnoBody.properties,
+  properties: {
+    dni: alumnoFields.dni, nombres: alumnoFields.nombres, apellidos: alumnoFields.apellidos,
+    email: alumnoFields.email, codigo: alumnoFields.codigo, telefono: alumnoFields.telefono,
+    categoriaId: createAlumnoBody.properties.categoriaId,
+  },
   additionalProperties: false,
 };
 
@@ -98,7 +113,7 @@ registerDocs({
       implementado: true,
       queryParams: listQueryParams,
       responses: {
-        '200': { description: 'Lista paginada de alumnos', content: { 'application/json': { schema: { type: 'object', properties: { data: { type: 'array', items: alumnoSchema }, page: { type: 'integer' }, limit: { type: 'integer' }, total: { type: 'integer' }, totalPages: { type: 'integer' } } } } } },
+        '200': { description: 'Lista paginada de alumnos', content: { 'application/json': { schema: { type: 'object', properties: { data: { type: 'object', properties: { data: { type: 'array', items: alumnoSchema }, page: { type: 'integer' }, limit: { type: 'integer' }, total: { type: 'integer' }, totalPages: { type: 'integer' } } } } } } } },
       },
     },
     {
@@ -106,20 +121,20 @@ registerDocs({
       metodo: 'GET',
       ruta: '/alumnos/:id',
       descripcion: 'Detalle de un alumno',
-      acceso: 'Todos (propietario o ADM)',
+      acceso: 'ADM, PROF de categoría asignada, ALU propietario',
       implementado: true,
       parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
-      responses: { '200': { description: 'Alumno encontrado', content: { 'application/json': { schema: alumnoSchema } } } },
+      responses: { '200': { description: 'Alumno encontrado', content: { 'application/json': { schema: alumnoResponseSchema } } } },
     },
     {
       id: 'ALU-03',
       metodo: 'GET',
       ruta: '/alumnos/dni/:dni',
       descripcion: 'Busca un alumno por DNI',
-      acceso: 'ADM, PROF',
+      acceso: 'ADM, PROF de categoría asignada',
       implementado: true,
       parameters: [{ name: 'dni', in: 'path', required: true, schema: { type: 'string', pattern: '^\\d{8}$' } }],
-      responses: { '200': { description: 'Alumno encontrado', content: { 'application/json': { schema: alumnoSchema } } } },
+      responses: { '200': { description: 'Alumno encontrado', content: { 'application/json': { schema: alumnoResponseSchema } } } },
     },
     {
       id: 'ALU-04',
@@ -129,7 +144,7 @@ registerDocs({
       acceso: 'ADM',
       implementado: true,
       requestBody: { required: true, content: { 'application/json': { schema: createAlumnoBody } } },
-      responses: { '201': { description: 'Alumno creado', content: { 'application/json': { schema: alumnoSchema } } } },
+      responses: { '201': { description: 'Alumno creado', content: { 'application/json': { schema: alumnoResponseSchema } } } },
     },
     {
       id: 'ALU-05',
@@ -140,7 +155,7 @@ registerDocs({
       implementado: true,
       parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
       requestBody: { required: true, content: { 'application/json': { schema: updateAlumnoBody } } },
-      responses: { '200': { description: 'Alumno actualizado', content: { 'application/json': { schema: alumnoSchema } } } },
+      responses: { '200': { description: 'Alumno actualizado', content: { 'application/json': { schema: alumnoResponseSchema } } } },
     },
     {
       id: 'ALU-06',
@@ -151,7 +166,7 @@ registerDocs({
       implementado: true,
       parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string', format: 'uuid' } }],
       requestBody: { required: true, content: { 'application/json': { schema: updateStateBody } } },
-      responses: { '200': { description: 'Estado actualizado', content: { 'application/json': { schema: alumnoSchema } } } },
+      responses: { '200': { description: 'Estado actualizado', content: { 'application/json': { schema: alumnoResponseSchema } } } },
     },
     {
       id: 'ALU-07',
@@ -170,7 +185,7 @@ registerDocs({
       descripcion: 'Consulta el perfil del alumno autenticado',
       acceso: 'ALU',
       implementado: true,
-      responses: { '200': { description: 'Perfil del alumno', content: { 'application/json': { schema: alumnoSchema } } } },
+      responses: { '200': { description: 'Perfil del alumno', content: { 'application/json': { schema: perfilResponseSchema } } } },
     },
     {
       id: 'ALU-09',
@@ -180,7 +195,7 @@ registerDocs({
       acceso: 'ALU',
       implementado: true,
       requestBody: { required: true, content: { 'application/json': { schema: updateProfileBody } } },
-      responses: { '200': { description: 'Perfil actualizado', content: { 'application/json': { schema: alumnoSchema } } } },
+      responses: { '200': { description: 'Perfil actualizado', content: { 'application/json': { schema: alumnoResponseSchema } } } },
     },
     {
       id: 'ALU-10',
@@ -190,7 +205,7 @@ registerDocs({
       acceso: 'ALU',
       implementado: true,
       requestBody: { required: true, content: { 'multipart/form-data': { schema: photoUploadBody } } },
-      responses: { '200': { description: 'Foto de perfil actualizada', content: { 'application/json': { schema: { type: 'object', properties: { fotoUrl: { type: 'string' } } } } } } },
+      responses: { '200': { description: 'Foto de perfil actualizada', content: { 'application/json': { schema: { type: 'object', properties: { data: { type: 'object', properties: { fotoUrl: { type: 'string' } } } } } } } } },
     },
     {
       id: 'ALU-11',
