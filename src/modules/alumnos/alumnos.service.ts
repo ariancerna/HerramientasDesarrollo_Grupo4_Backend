@@ -198,8 +198,9 @@ export async function create(currentUser: AuthUser | undefined, payload: Record<
   if (!categoriaExists) throw ApiError.badRequest('La categoría especificada no existe');
 
   return repository.create({
-    ...payload,
     dni,
+    nombres: payload.nombres,
+    apellidos: payload.apellidos,
     codigo,
     email,
     telefono: telefono ?? null,
