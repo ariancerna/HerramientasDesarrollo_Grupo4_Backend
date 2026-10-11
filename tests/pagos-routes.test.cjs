@@ -10,6 +10,7 @@ process.env.SUPABASE_SERVICE_ROLE_KEY = 'admin-de-prueba';
 const service = require('../dist/modules/pagos/pagos.service');
 const pagosRoutes = require('../dist/modules/pagos/pagos.routes').default;
 const mePagosRoutes = require('../dist/modules/pagos/pagos.routes').mePagosRoutes;
+const apiRoutes = require('../dist/routes').default;
 const { supabaseAdmin, supabaseAnon } = require('../dist/config/supabase');
 const { errorMiddleware } = require('../dist/middlewares/error.middleware');
 
@@ -17,7 +18,7 @@ const adminId = '11111111-1111-4111-8111-111111111111';
 const alumnoId = '22222222-2222-4222-8222-222222222222';
 const pagoId = '33333333-3333-4333-8333-333333333333';
 
-async function iniciarServidor(t) {
+async function iniciarServidor(t, montarRouterPrincipal = false) {
   const usuarios = {
     'admin-token': {
       id: adminId, usuario: 'admin', email: 'admin@example.invalid', nombre: 'Admin',
@@ -48,8 +49,12 @@ async function iniciarServidor(t) {
 
   const app = express();
   app.use(express.json());
-  app.use('/api/v1/pagos', pagosRoutes);
-  app.use('/api/v1/me/pagos', mePagosRoutes);
+  if (montarRouterPrincipal) {
+    app.use('/api/v1', apiRoutes);
+  } else {
+    app.use('/api/v1/pagos', pagosRoutes);
+    app.use('/api/v1/me/pagos', mePagosRoutes);
+  }
   app.use(errorMiddleware);
   const server = app.listen(0, '127.0.0.1');
   await new Promise((resolve, reject) => {
@@ -239,4 +244,27 @@ test('todas las rutas PAG protegidas requieren autenticación', async (t) => {
   assert.equal((await request('/api/v1/pagos/generar-mensualidad', { method: 'POST', body: {} })).status, 401);
   assert.equal((await request('/api/v1/me/pagos')).status, 401);
   assert.equal((await request('/api/v1/me/pagos/actual')).status, 401);
+});
+
+test('el router principal expone mis pagos exactamente en /api/v1/me/pagos', async (t) => {
+  let alumnoConsultado;
+  t.mock.method(service, 'history', async (usuario) => {
+    alumnoConsultado = usuario.estudianteId;
+    return [{ id: 'p-historial' }];
+  });
+  t.mock.method(service, 'pagoActual', async (usuario) => {
+    alumnoConsultado = usuario.estudianteId;
+    return null;
+  });
+  const request = await iniciarServidor(t, true);
+
+  const historial = await request('/api/v1/me/pagos', { token: 'alumno-token' });
+  assert.equal(historial.status, 200);
+  assert.deepEqual(await historial.json(), { data: [{ id: 'p-historial' }] });
+  assert.equal(alumnoConsultado, alumnoId);
+
+  const actual = await request('/api/v1/me/pagos/actual', { token: 'alumno-token' });
+  assert.equal(actual.status, 200);
+  assert.deepEqual(await actual.json(), { data: null });
+  assert.equal(alumnoConsultado, alumnoId);
 });
