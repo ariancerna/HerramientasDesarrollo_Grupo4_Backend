@@ -104,12 +104,12 @@ async function createFixture(t, options = {}) {
   return {
     rows, calls, client,
     async request(method, { categoria = ids.categoria, horario = ids.horario,
-      token = 'admin', body } = {}) {
+      token = 'admin', body, rawBody } = {}) {
       const headers = {};
       if (token !== null) headers.Authorization = 'Bearer ' + token;
-      if (body !== undefined) headers['Content-Type'] = 'application/json';
+      if (body !== undefined || rawBody !== undefined) headers['Content-Type'] = 'application/json';
       const response = await fetch(base + '/api/v1/categorias/' + categoria + '/horarios/' + horario, {
-        method, headers, body: body === undefined ? undefined : JSON.stringify(body),
+        method, headers, body: rawBody ?? (body === undefined ? undefined : JSON.stringify(body)),
       });
       const text = await response.text();
       return { status: response.status, text, json: text ? JSON.parse(text) : undefined };
