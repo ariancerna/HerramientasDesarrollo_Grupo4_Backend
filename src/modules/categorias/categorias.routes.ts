@@ -4,8 +4,11 @@ import { requireRole } from '../../middlewares/role.middleware';
 import { validateBody } from '../../middlewares/validate.middleware';
 import * as controller from './categorias.controller';
 import { actualizarCategoriaSchema, crearCategoriaSchema } from './categorias.schema';
+import horariosRoutes from '../horarios/horarios.routes';
 
 const router = Router();
+
+router.use('/:id/horarios', horariosRoutes);
 
 // CAT-01..05 y HOR-01..05 (horarios anidados: agregar aquí /:id/horarios)
 // TODO: ajustar roles exactos según docs/ENDPOINTS.md (algunos endpoints de este

@@ -16,3 +16,18 @@ export function validateBody(schema: AnyZodObject) {
     }
   };
 }
+
+/** Valida parámetros anidados antes de ejecutar consultas de base de datos. */
+export function validateParams(schema: AnyZodObject) {
+  return (req: Request, _res: Response, next: NextFunction) => {
+    try {
+      req.params = schema.parse(req.params);
+      next();
+    } catch (err) {
+      if (err instanceof ZodError) {
+        return next(ApiError.badRequest('Parámetros inválidos', err.flatten().fieldErrors));
+      }
+      next(err);
+    }
+  };
+}
