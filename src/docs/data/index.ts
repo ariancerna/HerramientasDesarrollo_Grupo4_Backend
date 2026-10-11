@@ -14,6 +14,7 @@ import './sys.docs';
 import './auth.docs';
 import './usuarios.docs';
 import './sedes.docs';
+import './horarios.docs';
 
 // TODO equipo — agregar aquí cuando cada quien programe su módulo:
 // import './categorias.docs';

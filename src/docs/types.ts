@@ -1,5 +1,12 @@
 export type MetodoHttp = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 
+export interface OpenApiParameter {
+  name: string;
+  in: 'query' | 'path';
+  required?: boolean;
+  schema: Record<string, unknown>;
+}
+
 export interface EndpointDoc {
   /** ID tal como aparece en docs/ENDPOINTS.md, ej. "AUTH-01" */
   id: string;
@@ -11,6 +18,9 @@ export interface EndpointDoc {
   acceso: string;
   /** Marca real de si YA está programado (no solo la ruta creada, sino la lógica). */
   implementado: boolean;
+  parameters?: OpenApiParameter[];
+  requestBody?: Record<string, unknown>;
+  responses?: Record<string, unknown>;
 }
 
 export interface ModuloDoc {

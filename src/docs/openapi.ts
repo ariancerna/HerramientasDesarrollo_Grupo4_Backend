@@ -1,5 +1,5 @@
 import { getRegistry } from './registry';
-import { EndpointDoc } from './types';
+import { EndpointDoc, OpenApiParameter } from './types';
 
 /** Convierte "/alumnos/:id/cuenta" en { path: "/alumnos/{id}/cuenta", params: ["id"] } */
 function convertirRuta(ruta: string): { path: string; params: string[] } {
@@ -15,6 +15,15 @@ function construirOperacion(endpoint: EndpointDoc, tag: string) {
   const { params } = convertirRuta(endpoint.ruta);
   const metodosConBody = ['POST', 'PUT', 'PATCH'];
   const prefijoEstado = endpoint.implementado ? '' : '⏳ [PENDIENTE] ';
+  const parameters = new Map<string, OpenApiParameter>();
+  for (const nombre of params) {
+    parameters.set('path:' + nombre, {
+      name: nombre, in: 'path', required: true, schema: { type: 'string' },
+    });
+  }
+  for (const parameter of endpoint.parameters ?? []) {
+    parameters.set(parameter.in + ':' + parameter.name, parameter);
+  }
 
   const operacion: Record<string, unknown> = {
     tags: [tag],
@@ -23,14 +32,9 @@ function construirOperacion(endpoint: EndpointDoc, tag: string) {
       endpoint.implementado ? '' : '\n\n⚠️ Este endpoint todavía no está implementado en el backend.'
     }`,
     operationId: endpoint.id,
-    parameters: params.map((nombre) => ({
-      name: nombre,
-      in: 'path',
-      required: true,
-      schema: { type: 'string' },
-    })),
+    parameters: [...parameters.values()],
     responses: {
-      '200': { description: 'OK' },
+      ...(endpoint.responses ?? { '200': { description: 'OK' } }),
       '400': { description: 'Solicitud inválida' },
       '401': { description: 'No autenticado' },
       '403': { description: 'Sin permiso para este recurso' },
@@ -41,7 +45,7 @@ function construirOperacion(endpoint: EndpointDoc, tag: string) {
   if (metodosConBody.includes(endpoint.metodo)) {
     // TODO: reemplazar este schema genérico por el real de cada módulo
     // (usando el *.schema.ts de Zod correspondiente) cuando se programe.
-    operacion.requestBody = {
+    operacion.requestBody = endpoint.requestBody ?? {
       required: false,
       content: {
         'application/json': {
