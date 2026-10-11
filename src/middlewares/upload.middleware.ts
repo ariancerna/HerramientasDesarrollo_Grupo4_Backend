@@ -1,7 +1,7 @@
 import multer from 'multer';
 import { ApiError } from '../lib/errors/api-error';
 
-const MAX_FILE_SIZE = 1.5 * 1024 * 1024;
+export const MAX_FILE_SIZE = 1.5 * 1024 * 1024;
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 export const upload = multer({

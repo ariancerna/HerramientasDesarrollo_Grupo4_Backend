@@ -1,5 +1,5 @@
 import { getRegistry } from './registry';
-import { EndpointDoc } from './types';
+import { EndpointDoc, OpenApiParameter } from './types';
 
 /** Convierte "/alumnos/:id/cuenta" en { path: "/alumnos/{id}/cuenta", params: ["id"] } */
 function convertirRuta(ruta: string): { path: string; params: string[] } {
@@ -15,6 +15,13 @@ function construirOperacion(endpoint: EndpointDoc, tag: string) {
   const { params } = convertirRuta(endpoint.ruta);
   const metodosConBody = ['POST', 'PUT', 'PATCH'];
   const prefijoEstado = endpoint.implementado ? '' : '⏳ [PENDIENTE] ';
+  const parametros = new Map<string, OpenApiParameter>();
+  for (const nombre of params) {
+    parametros.set(`path:${nombre}`, { name: nombre, in: 'path', required: true, schema: { type: 'string' } });
+  }
+  for (const parametro of [...(endpoint.parameters ?? []), ...(endpoint.queryParams ?? [])]) {
+    parametros.set(`${parametro.in}:${parametro.name}`, parametro);
+  }
 
   const operacion: Record<string, unknown> = {
     tags: [tag],
@@ -23,22 +30,13 @@ function construirOperacion(endpoint: EndpointDoc, tag: string) {
       endpoint.implementado ? '' : '\n\n⚠️ Este endpoint todavía no está implementado en el backend.'
     }`,
     operationId: endpoint.id,
-    parameters: [
-      ...params.map((nombre) => ({
-        name: nombre,
-        in: 'path',
-        required: true,
-        schema: { type: 'string' },
-      })),
-      ...(endpoint.parameters ?? []),
-      ...(endpoint.queryParams ?? []),
-    ],
-    responses: endpoint.responses ?? {
-      '200': { description: 'OK' },
+    parameters: [...parametros.values()],
+    responses: {
       '400': { description: 'Solicitud inválida' },
       '401': { description: 'No autenticado' },
       '403': { description: 'Sin permiso para este recurso' },
       '404': { description: 'No encontrado' },
+      ...(endpoint.responses ?? { '200': { description: 'OK' } }),
     },
   };
 

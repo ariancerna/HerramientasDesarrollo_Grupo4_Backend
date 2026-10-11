@@ -15,6 +15,7 @@ import './auth.docs';
 import './usuarios.docs';
 import './sedes.docs';
 import './dashboard.docs';
+import './alumnos.docs';
 
 // TODO equipo — agregar aquí cuando cada quien programe su módulo:
 // import './categorias.docs';
