@@ -64,6 +64,41 @@ test('PAG-09 devuelve alumnos activos sin cargo para el período y no hace consu
   assert.equal(sinAlumnos.requests.filter((request) => request.table === 'pagos').length, 0);
 });
 
+test('PAG-09 crea mensualidades ignorando conflictos de alumno y período', async () => {
+  let filasEnviadas;
+  let opcionesUpsert;
+  const pagoCreado = { id: 'p-b', alumno_id: 'b', periodo: '2026-10', estado: 'pendiente' };
+  const client = {
+    from: () => ({
+      upsert: (filas, opciones) => {
+        filasEnviadas = filas;
+        opcionesUpsert = opciones;
+        return {
+          select: () => ({
+            returns: async () => ({ data: [pagoCreado], error: null }),
+          }),
+        };
+      },
+    }),
+  };
+  const repository = crearPagosRepository(client);
+
+  const nuevos = await repository.createManyIfMissing([
+    { estudianteId: 'a', periodo: '2026-10' },
+    { estudianteId: 'b', periodo: '2026-10' },
+  ]);
+
+  assert.deepEqual(filasEnviadas, [
+    { alumno_id: 'a', periodo: '2026-10' },
+    { alumno_id: 'b', periodo: '2026-10' },
+  ]);
+  assert.deepEqual(opcionesUpsert, {
+    onConflict: 'alumno_id,periodo',
+    ignoreDuplicates: true,
+  });
+  assert.deepEqual(nuevos, [pagoCreado]);
+});
+
 test('PAG-10 obtiene solo el historial del alumno en orden de período descendente', async () => {
   const fixture = databaseFixture({
     pagos: [
