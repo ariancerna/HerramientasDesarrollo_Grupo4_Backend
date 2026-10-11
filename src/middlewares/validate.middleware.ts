@@ -31,3 +31,18 @@ export function validateQuery(schema: ZodTypeAny) {
     }
   };
 }
+
+/** Valida req.params contra un schema de Zod antes de llegar al controller. */
+export function validateParams(schema: ZodTypeAny) {
+  return (req: Request, _res: Response, next: NextFunction) => {
+    try {
+      req.params = schema.parse(req.params);
+      next();
+    } catch (err) {
+      if (err instanceof ZodError) {
+        return next(ApiError.badRequest('Parámetros de ruta inválidos', err.flatten().fieldErrors));
+      }
+      next(err);
+    }
+  };
+}
