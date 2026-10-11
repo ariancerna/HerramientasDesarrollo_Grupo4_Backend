@@ -1,22 +1,66 @@
+import { z, ZodError } from 'zod';
 import { ApiError } from '../../lib/errors/api-error';
 import type { AuthUser } from '../../types/express';
 import * as repository from './pagos.repository';
-import type { CrearPagoInput, EstadoMensualQuery } from './pagos.schema';
+import type { CrearPagoRepositoryInput, DetallePagoRegistrado } from './pagos.repository';
+import {
+  actualizarPagoSchema,
+  crearPagoSchema,
+  estadoMensualQuerySchema,
+  generarMensualidadSchema,
+  registrarPagoDirectoSchema,
+  registrarPagoSchema,
+} from './pagos.schema';
 
 type PagosRepository = typeof repository;
 
-export function periodoActualEnLima(ahora = new Date()): string {
+function fechaActualEnLima(ahora: Date) {
   const partes = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'America/Lima',
     year: 'numeric',
     month: '2-digit',
+    day: '2-digit',
   }).formatToParts(ahora);
   const valor = (tipo: Intl.DateTimeFormatPartTypes) => partes.find((parte) => parte.type === tipo)!.value;
-  return `${valor('year')}-${valor('month')}`;
+  return {
+    periodo: `${valor('year')}-${valor('month')}`,
+    fecha: `${valor('year')}-${valor('month')}-${valor('day')}`,
+  };
+}
+
+export function periodoActualEnLima(ahora = new Date()): string {
+  return fechaActualEnLima(ahora).periodo;
 }
 
 export function crearPagosService(repo: PagosRepository = repository, reloj = () => new Date()) {
-  async function estadoMensual({ periodo, texto, filtro }: EstadoMensualQuery) {
+  function validar<T>(schema: z.ZodType<T>, value: unknown, mensaje: string): T {
+    try {
+      return schema.parse(value);
+    } catch (error) {
+      if (error instanceof ZodError) {
+        throw ApiError.badRequest(mensaje, error.flatten().fieldErrors);
+      }
+      throw error;
+    }
+  }
+
+  async function list(filters: Record<string, unknown>) {
+    return repo.findAll(filters);
+  }
+
+  async function getById(id: string) {
+    const pago = await repo.findById(id);
+    if (!pago) throw ApiError.notFound('Pago no encontrado');
+    return pago;
+  }
+
+  async function create(payload: unknown) {
+    const datos = validar(crearPagoSchema, payload, 'Datos inválidos');
+    return repo.create({ ...datos, estado: 'pendiente' });
+  }
+
+  async function estadoMensual(query: Record<string, unknown>) {
+    const { periodo, texto, filtro } = validar(estadoMensualQuerySchema, query, 'Parámetros inválidos');
     const activos = await repo.findActiveStudents();
     const busqueda = texto?.toLocaleLowerCase('es').trim();
     const alumnos = busqueda
@@ -67,17 +111,103 @@ export function crearPagosService(repo: PagosRepository = repository, reloj = ()
     if (!usuario.estudianteId) {
       throw ApiError.forbidden('Tu cuenta no tiene un alumno vinculado. Contacta a un administrador.');
     }
-    return repo.findCurrentForStudent(usuario.estudianteId, periodoActualEnLima(reloj()));
+    return repo.findCurrentForStudent(usuario.estudianteId, fechaActualEnLima(reloj()).periodo);
+  }
+
+  async function history(usuario: AuthUser) {
+    if (!usuario.estudianteId) {
+      throw ApiError.forbidden('Tu cuenta no tiene un alumno vinculado. Contacta a un administrador.');
+    }
+    return repo.findHistoryForStudent(usuario.estudianteId);
+  }
+
+  async function update(id: string, payload: unknown) {
+    const datos = validar(actualizarPagoSchema, payload, 'Datos inválidos');
+    return repo.update(id, datos);
+  }
+
+  async function registrarPorId(id: string, payload: unknown) {
+    const datos = validar(registrarPagoSchema, payload, 'Datos inválidos');
+    const detalle: DetallePagoRegistrado = {
+      estado: 'pagado',
+      fechaPago: fechaActualEnLima(reloj()).fecha,
+      metodoPago: datos.metodoPago,
+      codigoOperacion: datos.codigoOperacion ?? null,
+    };
+    return repo.updatePaymentDetails(id, detalle);
+  }
+
+  async function registrarDirecto(payload: unknown): Promise<{ pago: Awaited<ReturnType<typeof repo.create>>; creado: boolean }> {
+    const datos = validar(registrarPagoDirectoSchema, payload, 'Datos inválidos');
+    const fecha = fechaActualEnLima(reloj()).fecha;
+    const detalle: DetallePagoRegistrado = {
+      estado: 'pagado',
+      fechaPago: fecha,
+      metodoPago: datos.metodoPago,
+      codigoOperacion: datos.codigoOperacion ?? null,
+    };
+    const existente = await repo.findCurrentForStudent(datos.estudianteId, datos.periodo);
+
+    if (existente) {
+      return { pago: await repo.updatePaymentDetails(existente.id, detalle), creado: false };
+    }
+
+    const nuevoPago: CrearPagoRepositoryInput = {
+      estudianteId: datos.estudianteId,
+      periodo: datos.periodo,
+      estado: 'pagado',
+      fechaPago: fecha,
+      metodoPago: datos.metodoPago,
+      codigoOperacion: datos.codigoOperacion ?? null,
+    };
+    try {
+      return { pago: await repo.create(nuevoPago), creado: true };
+    } catch (error) {
+      if (!(error instanceof ApiError) || error.statusCode !== 409) throw error;
+      const pagoConcurrente = await repo.findCurrentForStudent(datos.estudianteId, datos.periodo);
+      if (!pagoConcurrente) throw error;
+      return { pago: await repo.updatePaymentDetails(pagoConcurrente.id, detalle), creado: false };
+    }
+  }
+
+  async function marcarPendiente(id: string) {
+    return repo.updatePaymentDetails(id, {
+      estado: 'pendiente',
+      fechaPago: null,
+      metodoPago: null,
+      codigoOperacion: null,
+    });
+  }
+
+  async function generarMensualidad(payload: unknown) {
+    const datos = validar(generarMensualidadSchema, payload, 'Datos inválidos');
+    const faltantes = await repo.findActiveStudentsWithoutPayment(datos.periodo);
+    const pagos = await repo.createManyIfMissing(faltantes.map((alumno) => ({
+      estudianteId: alumno.id,
+      periodo: datos.periodo,
+      ...(datos.monto === undefined ? {} : { monto: datos.monto }),
+      ...(datos.vencimiento === undefined ? {} : { vencimiento: datos.vencimiento }),
+    })));
+    return { periodo: datos.periodo, generados: pagos.length, pagos };
+  }
+
+  async function remove(id: string) {
+    return repo.remove(id);
   }
 
   return {
-    list: (filters: Record<string, unknown>) => repo.findAll(filters),
-    getById: (id: string) => repo.findById(id),
-    create: (payload: CrearPagoInput) => repo.create(payload),
-    update: (id: string, payload: Record<string, unknown>) => repo.update(id, payload),
-    remove: (id: string) => repo.remove(id),
+    list,
+    getById,
+    create,
     estadoMensual,
     pagoActual,
+    history,
+    update,
+    registrarPorId,
+    registrarDirecto,
+    marcarPendiente,
+    generarMensualidad,
+    remove,
   };
 }
 
@@ -85,8 +215,13 @@ export const {
   list,
   getById,
   create,
-  update,
-  remove,
   estadoMensual,
   pagoActual,
+  history,
+  update,
+  registrarPorId,
+  registrarDirecto,
+  marcarPendiente,
+  generarMensualidad,
+  remove,
 } = crearPagosService();

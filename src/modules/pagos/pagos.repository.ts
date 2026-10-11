@@ -27,12 +27,39 @@ export interface AlumnoRow {
   codigo: string | null;
 }
 
-function columnasDePago(payload: CrearPagoInput) {
+export interface CrearPagoRepositoryInput extends CrearPagoInput {
+  estado?: PagoRow['estado'];
+  fechaPago?: string | null;
+  metodoPago?: string | null;
+  codigoOperacion?: string | null;
+}
+
+export interface DetallePagoRegistrado {
+  estado: PagoRow['estado'];
+  fechaPago: string | null;
+  metodoPago: string | null;
+  codigoOperacion: string | null;
+}
+
+function columnasDePago(payload: CrearPagoRepositoryInput) {
   return {
     alumno_id: payload.estudianteId,
     periodo: payload.periodo,
     ...(payload.monto === undefined ? {} : { monto: payload.monto }),
     ...(payload.vencimiento === undefined ? {} : { vencimiento: payload.vencimiento }),
+    ...(payload.estado === undefined ? {} : { estado: payload.estado }),
+    ...(payload.fechaPago === undefined ? {} : { fecha_pago: payload.fechaPago }),
+    ...(payload.metodoPago === undefined ? {} : { metodo_pago: payload.metodoPago }),
+    ...(payload.codigoOperacion === undefined ? {} : { codigo_operacion: payload.codigoOperacion }),
+  };
+}
+
+function columnasDeDetalle(payload: DetallePagoRegistrado) {
+  return {
+    estado: payload.estado,
+    fecha_pago: payload.fechaPago,
+    metodo_pago: payload.metodoPago,
+    codigo_operacion: payload.codigoOperacion,
   };
 }
 
@@ -130,7 +157,7 @@ export function crearPagosRepository(client: SupabaseClient) {
     return alumnos.filter((alumno) => !estudiantesConPago.has(alumno.id));
   }
 
-  async function create(payload: CrearPagoInput): Promise<PagoRow> {
+  async function create(payload: CrearPagoRepositoryInput): Promise<PagoRow> {
     const { data, error } = await client.from(TABLE)
       .insert(columnasDePago(payload))
       .select('*')
@@ -152,9 +179,32 @@ export function crearPagosRepository(client: SupabaseClient) {
     return data;
   }
 
-  async function remove(id: string) {
-    const { error } = await client.from(TABLE).delete().eq('id', id);
+  async function updatePaymentDetails(id: string, payload: DetallePagoRegistrado): Promise<PagoRow> {
+    const { data, error } = await client.from(TABLE)
+      .update(columnasDeDetalle(payload))
+      .eq('id', id)
+      .select('*')
+      .maybeSingle<PagoRow>();
     if (error) throw error;
+    if (!data) throw ApiError.notFound('Pago no encontrado');
+    return data;
+  }
+
+  async function createManyIfMissing(payloads: CrearPagoRepositoryInput[]): Promise<PagoRow[]> {
+    if (payloads.length === 0) return [];
+    const filas = payloads.map((payload) => columnasDePago(payload));
+    const { data, error } = await client.from(TABLE)
+      .upsert(filas, { onConflict: 'alumno_id,periodo', ignoreDuplicates: true })
+      .select('*')
+      .returns<PagoRow[]>();
+    if (error) throw error;
+    return data ?? [];
+  }
+
+  async function remove(id: string) {
+    const { data, error } = await client.from(TABLE).delete().eq('id', id).select('id').maybeSingle();
+    if (error) throw error;
+    if (!data) throw ApiError.notFound('Pago no encontrado');
   }
 
   return {
@@ -167,6 +217,8 @@ export function crearPagosRepository(client: SupabaseClient) {
     findCurrentForStudent,
     create,
     update,
+    updatePaymentDetails,
+    createManyIfMissing,
     remove,
   };
 }
@@ -183,5 +235,7 @@ export const {
   findCurrentForStudent,
   create,
   update,
+  updatePaymentDetails,
+  createManyIfMissing,
   remove,
 } = pagosRepository;
