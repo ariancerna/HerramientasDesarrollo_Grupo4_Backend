@@ -12,7 +12,7 @@ export async function admin(_req: Request, res: Response, next: NextFunction) {
 
 export async function profesor(req: Request, res: Response, next: NextFunction) {
   try {
-    ok(res, await service.resumenProfesor(req.user!.profesorId ?? req.user!.id));
+    ok(res, await service.resumenProfesor(req.user!));
   } catch (err) {
     next(err);
   }
@@ -20,7 +20,7 @@ export async function profesor(req: Request, res: Response, next: NextFunction) 
 
 export async function alumno(req: Request, res: Response, next: NextFunction) {
   try {
-    ok(res, await service.resumenAlumno(req.user!.estudianteId ?? req.user!.id));
+    ok(res, await service.resumenAlumno(req.user!));
   } catch (err) {
     next(err);
   }

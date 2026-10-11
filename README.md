@@ -57,6 +57,10 @@ Si algo de esto no responde, revisa el paso 3 (`.env`) antes de seguir.
 
 ## 6. Elegir en qué trabajar
 
+Los endpoints de dashboard por rol ya cuentan con implementación y pruebas.
+Consulta [docs/DASHBOARD.md](docs/DASHBOARD.md) para sus respuestas, permisos y
+pasos de verificación. Ejecuta `npm test` para comprobarlos sin Supabase real.
+
 1. Habla con el grupo (o revisa el tablero de tareas) para ver qué módulo te toca (`src/modules/<tu-modulo>/`).
 2. Crea tu rama:
 ```bash
