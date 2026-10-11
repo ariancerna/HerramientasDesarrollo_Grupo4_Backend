@@ -1,10 +1,29 @@
 import { NextFunction, Request, Response } from 'express';
 import { created, ok } from '../../lib/utils/response';
+import { ApiError } from '../../lib/errors/api-error';
 import * as service from './pagos.service';
+import type { EstadoMensualQuery } from './pagos.schema';
 
 export async function list(req: Request, res: Response, next: NextFunction) {
   try {
     ok(res, await service.list(req.query));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function estadoMensual(req: Request, res: Response, next: NextFunction) {
+  try {
+    ok(res, await service.estadoMensual(req.query as unknown as EstadoMensualQuery));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function pagoActual(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.user) throw ApiError.unauthorized();
+    ok(res, await service.pagoActual(req.user));
   } catch (err) {
     next(err);
   }

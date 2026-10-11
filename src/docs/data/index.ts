@@ -16,12 +16,12 @@ import './usuarios.docs';
 import './sedes.docs';
 import './dashboard.docs';
 import './alumnos.docs';
+import './pagos.docs';
 
 // TODO equipo — agregar aquí cuando cada quien programe su módulo:
 // import './categorias.docs';
 // import './profesores.docs';
 // import './asistencias.docs';
-// import './pagos.docs';
 // import './calendario.docs';
 // import './evaluaciones.docs';
 // import './anuncios.docs';
