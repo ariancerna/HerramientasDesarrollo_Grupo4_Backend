@@ -95,6 +95,23 @@ export function crearPagosRepository(client: SupabaseClient) {
     return pagos;
   }
 
+  async function findHistoryForStudent(estudianteId: string): Promise<PagoRow[]> {
+    const pagos: PagoRow[] = [];
+    for (let desde = 0; ; desde += PAGE_SIZE) {
+      const { data, error } = await client.from(TABLE)
+        .select('*')
+        .eq('alumno_id', estudianteId)
+        .order('periodo', { ascending: false })
+        .order('id')
+        .range(desde, desde + PAGE_SIZE - 1)
+        .returns<PagoRow[]>();
+      if (error) throw error;
+      const pagina = data ?? [];
+      pagos.push(...pagina);
+      if (pagina.length < PAGE_SIZE) return pagos;
+    }
+  }
+
   async function findCurrentForStudent(estudianteId: string, periodo: string): Promise<PagoRow | null> {
     const { data, error } = await client.from(TABLE).select('*')
       .eq('alumno_id', estudianteId)
@@ -102,6 +119,15 @@ export function crearPagosRepository(client: SupabaseClient) {
       .maybeSingle<PagoRow>();
     if (error) throw error;
     return data ?? null;
+  }
+
+  async function findActiveStudentsWithoutPayment(periodo: string): Promise<AlumnoRow[]> {
+    const alumnos = await findActiveStudents();
+    if (alumnos.length === 0) return [];
+
+    const pagos = await findByPeriodForStudents(periodo, alumnos.map((alumno) => alumno.id));
+    const estudiantesConPago = new Set(pagos.map((pago) => pago.alumno_id));
+    return alumnos.filter((alumno) => !estudiantesConPago.has(alumno.id));
   }
 
   async function create(payload: CrearPagoInput): Promise<PagoRow> {
@@ -136,6 +162,8 @@ export function crearPagosRepository(client: SupabaseClient) {
     findById,
     findActiveStudents,
     findByPeriodForStudents,
+    findActiveStudentsWithoutPayment,
+    findHistoryForStudent,
     findCurrentForStudent,
     create,
     update,
@@ -150,6 +178,8 @@ export const {
   findById,
   findActiveStudents,
   findByPeriodForStudents,
+  findActiveStudentsWithoutPayment,
+  findHistoryForStudent,
   findCurrentForStudent,
   create,
   update,
