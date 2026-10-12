@@ -1,19 +1,15 @@
 import { Router } from 'express';
 import { requireAuth } from '../../middlewares/auth.middleware';
 import { requireRole } from '../../middlewares/role.middleware';
-import { validateBody } from '../../middlewares/validate.middleware';
+import { validateBody, validateParams, validateQuery } from '../../middlewares/validate.middleware';
 import * as controller from './profesores.controller';
-import { actualizarProfesorSchema, crearProfesorSchema } from './profesores.schema';
-
+import { actualizarProfesorSchema, crearProfesorSchema, profesorParamsSchema, profesoresQuerySchema, asignarCategoriasSchema } from './profesores.schema';
 const router = Router();
-
-// PRF-01..06
-// TODO: ajustar roles exactos según docs/ENDPOINTS.md (algunos endpoints de este
-// módulo son de solo lectura para ALU/PROF, o tienen reglas de alcance por rol).
-router.get('/', requireAuth, controller.list);
-router.get('/:id', requireAuth, controller.getById);
-router.post('/', requireAuth, requireRole('ADM'), validateBody(crearProfesorSchema), controller.create);
-router.put('/:id', requireAuth, requireRole('ADM'), validateBody(actualizarProfesorSchema), controller.update);
-router.delete('/:id', requireAuth, requireRole('ADM'), controller.remove);
-
+router.use(requireAuth, requireRole('ADM'));
+router.get('/', validateQuery(profesoresQuerySchema), controller.list);
+router.get('/:id', validateParams(profesorParamsSchema), controller.getById);
+router.post('/', validateBody(crearProfesorSchema), controller.create);
+router.put('/:id', validateParams(profesorParamsSchema), validateBody(actualizarProfesorSchema), controller.update);
+router.delete('/:id', validateParams(profesorParamsSchema), controller.remove);
+router.put('/:id/categorias', validateParams(profesorParamsSchema), validateBody(asignarCategoriasSchema), controller.asignarCategorias);
 export default router;
