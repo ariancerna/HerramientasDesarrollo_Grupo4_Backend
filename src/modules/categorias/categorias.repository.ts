@@ -1,33 +1,42 @@
 import { supabaseAdmin } from '../../config/supabase';
 
-const TABLE = 'categorias';
-
+const SELECT = '*, horarios(*), profesores_categorias(profesor_id)';
+export function presentCategoria(row: any) {
+  return {
+    id: row.id, nombre: row.nombre, descripcion: row.descripcion,
+    profesorIds: (row.profesores_categorias ?? []).map((item: any) => item.profesor_id),
+    horarios: (row.horarios ?? []).map((item: any) => ({
+      id: item.id, dia: item.dia.toLowerCase(), horaInicio: item.hora_inicio.slice(0, 5),
+      horaFin: item.hora_fin.slice(0, 5), cancha: item.cancha, estado: item.estado,
+    })),
+  };
+}
 export async function findAll(filters: Record<string, unknown> = {}) {
-  // TODO: aplicar los filtros propios de CATEGORIAS (ver docs/ENDPOINTS.md).
-  const { data, error } = await supabaseAdmin.from(TABLE).select('*');
+  let query = supabaseAdmin.from('categorias').select(SELECT).order('nombre').order('id');
+  if (typeof filters.texto === 'string' && filters.texto) {
+    query = query.ilike('nombre', `%${filters.texto.replace(/[\\%_]/g, '\\$&')}%`);
+  }
+  const { data, error } = await query;
   if (error) throw error;
-  return data;
+  return (data ?? []).map(presentCategoria);
 }
-
 export async function findById(id: string) {
-  const { data, error } = await supabaseAdmin.from(TABLE).select('*').eq('id', id).single();
+  const { data, error } = await supabaseAdmin.from('categorias').select(SELECT).eq('id', id).maybeSingle();
   if (error) throw error;
-  return data;
+  return data ? presentCategoria(data) : null;
 }
-
 export async function create(payload: Record<string, unknown>) {
-  const { data, error } = await supabaseAdmin.from(TABLE).insert(payload).select().single();
+  const { data, error } = await supabaseAdmin.from('categorias').insert(payload).select(SELECT).single();
   if (error) throw error;
-  return data;
+  return presentCategoria(data);
 }
-
 export async function update(id: string, payload: Record<string, unknown>) {
-  const { data, error } = await supabaseAdmin.from(TABLE).update(payload).eq('id', id).select().single();
+  const { data, error } = await supabaseAdmin.from('categorias').update(payload).eq('id', id).select(SELECT).maybeSingle();
+  if (error) throw error;
+  return data ? presentCategoria(data) : null;
+}
+export async function remove(id: string) {
+  const { data, error } = await supabaseAdmin.from('categorias').delete().eq('id', id).select('id').maybeSingle();
   if (error) throw error;
   return data;
-}
-
-export async function remove(id: string) {
-  const { error } = await supabaseAdmin.from(TABLE).delete().eq('id', id);
-  if (error) throw error;
 }

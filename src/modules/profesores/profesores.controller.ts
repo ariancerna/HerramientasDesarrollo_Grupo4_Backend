@@ -42,3 +42,8 @@ export async function remove(req: Request, res: Response, next: NextFunction) {
     next(err);
   }
 }
+
+export async function asignarCategorias(req: Request, res: Response, next: NextFunction) {
+  try { ok(res, await service.asignarCategorias(req.params.id, req.body.categoriaIds)); }
+  catch (error) { next(error); }
+}
