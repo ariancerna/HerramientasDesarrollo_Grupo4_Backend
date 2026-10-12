@@ -1,10 +1,20 @@
 import { supabaseAdmin } from '../../config/supabase';
 import { CambiosProfesor, NuevoProfesor } from './profesores.schema';
-const SELECT = '*, usuarios(usuario,email,rol), profesores_categorias(categoria_id)';
+const SELECT = '*, profesores_categorias(categoria_id)';
 export function presentProfesor(row: any) {
   const cuenta = (row.usuarios ?? []).find((user: any) => user.rol === 'PROF');
   return { id: row.id, nombre: row.nombre, sedeId: row.sede_id, usuario: cuenta?.usuario ?? null, email: cuenta?.email ?? null,
     categoriaIds: (row.profesores_categorias ?? []).map((item: any) => item.categoria_id) };
+}
+async function attachCuentas(rows: any[]) {
+  if (rows.length === 0) return [];
+  // El perfil y su cuenta comparten el UUID de Auth. No dependemos de una
+  // FK usuarios.profesor_id para que PostgREST pueda resolver la consulta.
+  const { data, error } = await supabaseAdmin.from('usuarios')
+    .select('id,usuario,email,rol').eq('rol', 'PROF').in('id', rows.map((row) => row.id));
+  if (error) throw error;
+  const cuentas = new Map((data ?? []).map((cuenta) => [cuenta.id, cuenta]));
+  return rows.map((row) => presentProfesor({ ...row, usuarios: cuentas.has(row.id) ? [cuentas.get(row.id)] : [] }));
 }
 export async function findAll(filters: Record<string, unknown> = {}) {
   let query = supabaseAdmin.from('profesores').select(SELECT).order('nombre').order('id');
@@ -12,12 +22,12 @@ export async function findAll(filters: Record<string, unknown> = {}) {
   if (filters.sedeId) query = query.eq('sede_id', filters.sedeId);
   const { data, error } = await query;
   if (error) throw error;
-  return (data ?? []).map(presentProfesor);
+  return attachCuentas(data ?? []);
 }
 export async function findById(id: string) {
   const { data, error } = await supabaseAdmin.from('profesores').select(SELECT).eq('id', id).maybeSingle();
   if (error) throw error;
-  return data ? presentProfesor(data) : null;
+  return data ? (await attachCuentas([data]))[0] : null;
 }
 export async function usuarioExiste(usuario: string) {
   const { data, error } = await supabaseAdmin.from('usuarios').select('id').ilike('usuario', usuario.replace(/[\\%_]/g, '\\$&')).limit(1).maybeSingle();
