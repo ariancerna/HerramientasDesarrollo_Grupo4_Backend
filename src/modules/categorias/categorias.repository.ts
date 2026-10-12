@@ -1,14 +1,12 @@
 import { supabaseAdmin } from '../../config/supabase';
+import { presentHorarios } from '../../lib/utils/horarios';
 
 const SELECT = '*, horarios(*), profesores_categorias(profesor_id)';
 export function presentCategoria(row: any) {
   return {
     id: row.id, nombre: row.nombre, descripcion: row.descripcion,
     profesorIds: (row.profesores_categorias ?? []).map((item: any) => item.profesor_id),
-    horarios: (row.horarios ?? []).map((item: any) => ({
-      id: item.id, dia: item.dia.toLowerCase(), horaInicio: item.hora_inicio.slice(0, 5),
-      horaFin: item.hora_fin.slice(0, 5), cancha: item.cancha, estado: item.estado,
-    })),
+    horarios: presentHorarios(row.horarios ?? []),
   };
 }
 export async function findAll(filters: Record<string, unknown> = {}) {

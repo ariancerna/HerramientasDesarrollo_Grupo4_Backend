@@ -46,3 +46,18 @@ test('CAT consulta relaciones y devuelve campos compatibles con el frontend', as
   assert.equal(requests[0].searchParams.get('select'), '*,horarios(*),profesores_categorias(profesor_id)');
   assert.equal(requests[0].searchParams.get('nombre'), 'ilike.%Sub\\_\\%%');
 });
+
+test('CAT muestra horarios en orden semanal independiente del orden de PostgREST', () => {
+  const make = (id, dia, hora) => ({ id, dia, hora_inicio: hora, hora_fin: '23:00:00', estado: 'activo' });
+  const rows = [
+    make('domingo', 'Domingo', '09:00:00'),
+    make('lunes-tarde', 'Lunes', '18:00:00'),
+    make('miercoles', 'Miércoles', '10:00:00'),
+    make('lunes-temprano', 'Lunes', '08:00:00'),
+    make('sabado', 'Sábado', '09:00:00'),
+  ];
+  const result = repo.presentCategoria({ id, nombre: 'Sub-12', horarios: rows });
+  assert.deepEqual(result.horarios.map(row => row.id), ['lunes-temprano', 'lunes-tarde', 'miercoles', 'sabado', 'domingo']);
+  assert.equal(result.horarios[0].horaInicio, '08:00');
+  assert.equal(rows[0].id, 'domingo');
+});
