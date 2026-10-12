@@ -8,6 +8,8 @@ async function postgresFixture(t, migrationSuffix) {
   const dir = path.join(__dirname, '../../supabase/migrations');
   const initial = fs.readFileSync(path.join(dir, '001_initial_schema.sql'), 'utf8').replace('create extension if not exists "pgcrypto";', '');
   await db.exec(initial);
+  // Simula los permisos que Supabase otorga al cliente service_role.
+  await db.exec('GRANT USAGE ON SCHEMA public TO service_role; GRANT ALL ON ALL TABLES IN SCHEMA public TO service_role;');
   for (const suffix of migrationSuffix) {
     const file = fs.readdirSync(dir).find((name) => name.endsWith(suffix));
     await db.exec(fs.readFileSync(path.join(dir, file), 'utf8'));

@@ -7,6 +7,7 @@ test('PRF Postgres mantiene perfil y cuenta atomicos, reemplaza asignaciones y p
   const db = await postgresFixture(t, ['_profesores_transacciones.sql']);
   const { rows: [sede] } = await db.query("INSERT INTO sedes(nombre) VALUES ('Sede 1') RETURNING id");
   const { rows: [cat] } = await db.query("INSERT INTO categorias(nombre) VALUES ('Sub-12') RETURNING id");
+  await db.exec('SET ROLE service_role');
   const args = [id, 'Profesor', 'profesor', 'profesor@example.invalid', sede.id, [cat.id]];
   await assert.rejects(db.query('SELECT crear_profesor($1,$2,$3,$4,$5,$6::uuid[])', [...args.slice(0, 5), [missing]]), { code: '23503' });
   assert.equal((await db.query('SELECT * FROM profesores')).rows.length, 0);
@@ -16,13 +17,17 @@ test('PRF Postgres mantiene perfil y cuenta atomicos, reemplaza asignaciones y p
   assert.equal(created.data.password, undefined);
   await assert.rejects(db.query('SELECT asignar_categorias_profesor($1,$2::uuid[])', [id, [missing]]), { code: '23503' });
   assert.equal((await db.query('SELECT * FROM profesores_categorias')).rows.length, 1);
+  await db.query("INSERT INTO usuarios(id,usuario,email,nombre,rol) VALUES ($1,'ocupado','otro@example.invalid','Otro','ADM')", [missing]);
+  await assert.rejects(db.query('SELECT actualizar_profesor($1,$2::jsonb)', [id, JSON.stringify({ nombre: 'No guardar', usuario: 'ocupado' })]), { code: '23505' });
+  assert.equal((await db.query('SELECT nombre FROM profesores WHERE id=$1', [id])).rows[0].nombre, 'Profesor');
+  await db.query('DELETE FROM usuarios WHERE id=$1', [missing]);
   await db.query('SELECT actualizar_profesor($1,$2::jsonb)', [id, JSON.stringify({ nombre: 'Actualizado', usuario: 'nuevo' })]);
   assert.equal((await db.query('SELECT nombre FROM profesores')).rows[0].nombre, 'Actualizado');
   assert.equal((await db.query('SELECT usuario,nombre FROM usuarios')).rows[0].usuario, 'nuevo');
-  await db.exec('SET ROLE anon');
+  await db.exec('RESET ROLE; SET ROLE anon');
   await assert.rejects(db.query('SELECT profesor_json($1)', [id]), { code: '42501' });
   await assert.rejects(db.query('SELECT * FROM profesores_auth_pendientes'), { code: '42501' });
-  await db.exec('RESET ROLE');
+  await db.exec('RESET ROLE; SET ROLE service_role');
   await db.query('SELECT asignar_categorias_profesor($1,$2::uuid[])', [id, []]);
   assert.equal((await db.query('SELECT * FROM profesores_categorias')).rows.length, 0);
   await db.query('SELECT eliminar_profesor($1)', [id]);
