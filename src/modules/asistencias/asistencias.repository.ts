@@ -1,33 +1,28 @@
-import { supabaseAdmin } from '../../config/supabase';
+import { supabaseAdmin } from "../../config/supabase";
+import { AsistenciaDTO } from "./asistencias.schema";
 
-const TABLE = 'asistencias';
+export class AsistenciasRepository {
+  static async findAll() {
+    const { data, error } = await supabaseAdmin.from("asistencias").select("*");
+    if (error) throw new Error(error.message);
+    return data;
+  }
 
-export async function findAll(filters: Record<string, unknown> = {}) {
-  // TODO: aplicar los filtros propios de ASISTENCIAS (ver docs/ENDPOINTS.md).
-  const { data, error } = await supabaseAdmin.from(TABLE).select('*');
-  if (error) throw error;
-  return data;
-}
+  static async findByAlumno(alumno_id: string) {
+    const { data, error } = await supabaseAdmin
+      .from("asistencias")
+      .select("*")
+      .eq("alumno_id", alumno_id);
+    if (error) throw new Error(error.message);
+    return data;
+  }
 
-export async function findById(id: string) {
-  const { data, error } = await supabaseAdmin.from(TABLE).select('*').eq('id', id).single();
-  if (error) throw error;
-  return data;
-}
-
-export async function create(payload: Record<string, unknown>) {
-  const { data, error } = await supabaseAdmin.from(TABLE).insert(payload).select().single();
-  if (error) throw error;
-  return data;
-}
-
-export async function update(id: string, payload: Record<string, unknown>) {
-  const { data, error } = await supabaseAdmin.from(TABLE).update(payload).eq('id', id).select().single();
-  if (error) throw error;
-  return data;
-}
-
-export async function remove(id: string) {
-  const { error } = await supabaseAdmin.from(TABLE).delete().eq('id', id);
-  if (error) throw error;
+  static async create(asistencia: AsistenciaDTO) {
+    const { data, error } = await supabaseAdmin
+      .from("asistencias")
+      .insert([asistencia])
+      .select();
+    if (error) throw new Error(error.message);
+    return data[0];
+  }
 }
