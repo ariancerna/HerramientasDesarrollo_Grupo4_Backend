@@ -1,78 +1,143 @@
 # Club de Vóley — Backend
 
-Guía rápida para clonar, instalar y empezar a trabajar. Si buscas la lista completa de endpoints o las decisiones de diseño, están en `docs/ENDPOINTS.md`.
+API REST para la gestión de un club de vóley. El backend administra cuentas de acceso, alumnos, categorías, horarios de entrenamiento, profesores y mensualidades, y ofrece resúmenes de inicio por rol.
 
-## Requisitos antes de empezar
+La aplicación utiliza Express y TypeScript. Supabase proporciona PostgreSQL, autenticación y almacenamiento de archivos.
 
-- **Node.js 20 o superior** — verifica con `node -v`. Si no lo tienes: [nodejs.org](https://nodejs.org).
-- **Git** instalado y configurado (`git --version`).
-- Que **Eduardo** te haya agregado como colaborador del repo en GitHub (o que el repo sea público para ti).
-- Pedirle a Eduardo (por el grupo) las **3 credenciales de Supabase** (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`). Todos usamos el mismo proyecto de Supabase — nadie crea uno nuevo.
+## Tecnologías
 
-## 1. Clonar el repo
+- Node.js 20 o superior y npm.
+- TypeScript y Express.
+- Supabase: Database, Auth y Storage.
+- Zod para validación de entradas.
+- OpenAPI y Swagger UI para documentación del API.
+- Node Test Runner y PGlite para pruebas automatizadas.
+
+## Instalación
 
 ```bash
 git clone https://github.com/ariancerna/HerramientasDesarrollo_Grupo4_Backend.git
 cd HerramientasDesarrollo_Grupo4_Backend
+git switch dev
+npm ci
 ```
 
-## 2. Instalar dependencias
+La rama `dev` contiene la integración de los módulos en desarrollo.
+
+## Configuración
+
+La configuración se carga desde un archivo `.env` en la raíz del proyecto. La plantilla `.env.example` contiene las variables requeridas.
+
+En PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+En Linux o macOS:
 
 ```bash
-npm install
+cp .env.example .env
 ```
 
-Esto crea la carpeta `node_modules/` (no se sube a GitHub, es normal no verla en el repo).
+| Variable | Descripción | Valor de referencia |
+|---|---|---|
+| `PORT` | Puerto del servidor | `4000` |
+| `NODE_ENV` | Entorno de ejecución | `development` |
+| `CORS_ORIGIN` | Origen autorizado del frontend | `http://localhost:3000` |
+| `SUPABASE_URL` | URL del proyecto compartido | Configuración del proyecto |
+| `SUPABASE_ANON_KEY` | Clave utilizada por el cliente de autenticación | Configuración del proyecto |
+| `SUPABASE_SERVICE_ROLE_KEY` | Clave administrativa utilizada por los repositorios | Configuración del proyecto |
 
-## 3. Configurar las variables de entorno
+Las credenciales corresponden al proyecto de Supabase del equipo. `.env` está excluido del control de versiones. La clave administrativa se utiliza exclusivamente en el backend.
 
-1. Duplica el archivo de ejemplo:
-```bash
-   cp .env.example .env        # Mac/Linux
-   copy .env.example .env      # Windows (cmd)
-```
-2. Abre `.env` y pega las 3 credenciales de Supabase que te pasó el equipo:
-3. El resto de valores (`PORT`, `NODE_ENV`, `CORS_ORIGIN`) déjalos como están.
+## Base de datos
 
-⚠️ `.env` nunca se sube a Git (ya está en `.gitignore`). Si por error lo agregas con `git add .env`, avisa al grupo — hay que rotar las claves de Supabase.
+Los scripts SQL se encuentran en `supabase/migrations/` y se aplican desde el SQL Editor de Supabase por un administrador del proyecto.
 
-## 4. Levantar el servidor
+Una instalación nueva requiere los scripts base `001` a `004`, en orden, seguidos de las migraciones adicionales:
+
+| Archivo | Función |
+|---|---|
+| `001_initial_schema.sql` | Tablas, relaciones y restricciones del modelo |
+| `002_rls.sql` | Políticas de seguridad por fila |
+| `003_functions.sql` | Funciones del esquema base |
+| `004_storage_avatares.sql` | Configuración del almacenamiento de avatares |
+| `20261012155228_horarios_dia_unico.sql` | Restricción de un horario por día y categoría |
+| `20261012155319_profesores_transacciones.sql` | Transacciones de profesores y seguimiento de limpieza de cuentas Auth |
+
+En una base de datos existente se aplican únicamente los scripts pendientes. La migración de horarios requiere que no existan días duplicados dentro de una misma categoría; si los hay, deben resolverse antes de crear el índice único.
+
+## Ejecución
 
 ```bash
 npm run dev
 ```
 
-Si todo está bien, verás en la terminal:
-Club de Vóley API escuchando en http://localhost:4000
-Entorno: development
+El servidor utiliza `http://localhost:4000` por defecto. Para ejecutar la compilación:
 
-## 5. Verificar que funciona
-
-Abre en el navegador (o `curl`):
-
-- `http://localhost:4000/api/v1/health` → debe responder `{"status":"ok", ...}`
-- `http://localhost:4000/api/v1/docs` → Swagger UI con los endpoints que ya están registrados (los que faltan aparecerán a medida que cada quien programe su módulo)
-
-Si algo de esto no responde, revisa el paso 3 (`.env`) antes de seguir.
-
-## 6. Elegir en qué trabajar
-
-Los endpoints de dashboard por rol ya cuentan con implementación y pruebas.
-Consulta [docs/DASHBOARD.md](docs/DASHBOARD.md) para sus respuestas, permisos y
-pasos de verificación. Ejecuta `npm test` para comprobarlos sin Supabase real.
-
-1. Habla con el grupo (o revisa el tablero de tareas) para ver qué módulo te toca (`src/modules/<tu-modulo>/`).
-2. Crea tu rama:
 ```bash
-   git checkout -b feature/<tu-modulo>
+npm run build
+npm start
 ```
-3. Programa tu módulo (`*.schema.ts`, `*.repository.ts`, `*.service.ts`, `*.controller.ts`, `*.routes.ts` — ya están creados como plantilla con `TODO`).
-4. Cuando tu módulo funcione, agrégalo a Swagger: crea `src/docs/data/<tu-modulo>.docs.ts` (copia cualquiera de los que ya existen como plantilla) y descomenta tu línea en `src/docs/data/index.ts`.
-5. Prueba en `http://localhost:4000/api/v1/docs` con el botón **Authorize** (pega tu token) y **Try it out** en cada endpoint.
 
+En PowerShell también puede utilizarse `npm.cmd` para ejecutar estos comandos.
 
-## Categorias, horarios y profesores
+## Documentación del API
 
-Los modulos CAT, HOR y PRF cuentan con implementacion, Swagger y pruebas.
-Consultar [docs/AVANCE_BACKEND.md](docs/AVANCE_BACKEND.md) para las ramas, migraciones e integracion pendiente del frontend, y los contratos de [categorias](docs/CATEGORIAS.md), [horarios](docs/HORARIOS.md) y [profesores](docs/PROFESORES.md).
-Las dos migraciones nuevas deben aplicarse despues del esquema existente para usar las transacciones de profesores y la restriccion de horarios. `npm test` las verifica en Postgres embebido sin credenciales del equipo.
+Todas las rutas utilizan el prefijo `/api/v1`.
+
+| Recurso | Dirección local |
+|---|---|
+| Estado del servicio | `http://localhost:4000/api/v1/health` |
+| Swagger UI | `http://localhost:4000/api/v1/docs` |
+| Especificación OpenAPI | `http://localhost:4000/api/v1/openapi.json` |
+
+Las rutas protegidas reciben el token de Supabase en `Authorization: Bearer <accessToken>`. Swagger permite configurarlo mediante **Authorize**. Los roles del sistema son `ADM`, `PROF` y `ALU`.
+
+### Módulos documentados
+
+| Módulo | Contrato y comportamiento |
+|---|---|
+| Autenticación, cuentas de acceso y sedes | Swagger UI |
+| Alumnos y perfil | Swagger UI y pruebas en `tests/alumnos-*.test.cjs` |
+| Categorías | [CATEGORIAS.md](docs/CATEGORIAS.md) |
+| Horarios de entrenamiento | [HORARIOS.md](docs/HORARIOS.md) |
+| Profesores y asignaciones | [PROFESORES.md](docs/PROFESORES.md) |
+| Pagos y mensualidades | [PAGOS.md](docs/PAGOS.md) |
+| Resúmenes de inicio por rol | [DASHBOARD.md](docs/DASHBOARD.md) |
+
+Los módulos restantes mantienen sus rutas y archivos dentro de `src/modules/`; su implementación y documentación se incorporan progresivamente.
+
+## Verificación
+
+```bash
+npm run typecheck
+npm test
+```
+
+`npm test` compila el proyecto y ejecuta pruebas de validación, permisos HTTP, consultas y reglas de negocio. Las pruebas utilizan transporte simulado para Supabase y PostgreSQL embebido con PGlite para las transacciones SQL; no escriben en la base de datos compartida.
+
+La comprobación de los flujos completos con Auth y PostgREST reales se realiza por separado, con la configuración del proyecto.
+
+## Estructura
+
+```text
+src/
+  config/          Variables de entorno y clientes Supabase
+  docs/            Registro de endpoints y generación de OpenAPI
+  lib/             Errores y utilidades compartidas
+  middlewares/     Autenticación, roles y validación
+  modules/         Rutas, controladores, servicios, esquemas y repositorios
+  routes/          Montaje del API
+  types/           Tipos compartidos
+supabase/          Scripts SQL y datos iniciales
+tests/             Pruebas automatizadas
+docs/              Contratos y documentación de módulos
+```
+
+## Desarrollo
+
+Las funcionalidades se trabajan en ramas `feature/<funcionalidad>` y se integran en `dev` después de validar la compilación y las pruebas. Los commits agrupan cambios concretos de implementación, correcciones, pruebas o documentación.
+
+Los nuevos endpoints se registran en `src/docs/data/` y se incluyen en `src/docs/data/index.ts` para incorporarlos a Swagger. Los cambios del modelo de datos se entregan como archivos SQL versionados.
