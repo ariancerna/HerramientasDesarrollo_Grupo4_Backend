@@ -70,3 +70,9 @@ pasos de verificación. Ejecuta `npm test` para comprobarlos sin Supabase real.
 4. Cuando tu módulo funcione, agrégalo a Swagger: crea `src/docs/data/<tu-modulo>.docs.ts` (copia cualquiera de los que ya existen como plantilla) y descomenta tu línea en `src/docs/data/index.ts`.
 5. Prueba en `http://localhost:4000/api/v1/docs` con el botón **Authorize** (pega tu token) y **Try it out** en cada endpoint.
 
+
+## Categorias, horarios y profesores
+
+Los modulos CAT, HOR y PRF cuentan con implementacion, Swagger y pruebas.
+Consultar [docs/AVANCE_BACKEND.md](docs/AVANCE_BACKEND.md) para las ramas, migraciones e integracion pendiente del frontend, y los contratos de [categorias](docs/CATEGORIAS.md), [horarios](docs/HORARIOS.md) y [profesores](docs/PROFESORES.md).
+Las dos migraciones nuevas deben aplicarse despues del esquema existente para usar las transacciones de profesores y la restriccion de horarios. `npm test` las verifica en Postgres embebido sin credenciales del equipo.
