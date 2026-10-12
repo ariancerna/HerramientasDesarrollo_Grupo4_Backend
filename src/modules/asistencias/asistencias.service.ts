@@ -1,21 +1,16 @@
-import * as repository from './asistencias.repository';
+import { AsistenciasRepository } from './asistencias.repository';
+import { AsistenciaDTO } from './asistencias.schema';
 
-export async function list(filters: Record<string, unknown>) {
-  return repository.findAll(filters);
-}
+export class AsistenciasService {
+  static async obtenerTodas() {
+    return await AsistenciasRepository.findAll();
+  }
 
-export async function getById(id: string) {
-  return repository.findById(id);
-}
+  static async obtenerPorAlumno(alumno_id: string) {
+    return await AsistenciasRepository.findByAlumno(alumno_id);
+  }
 
-export async function create(payload: Record<string, unknown>) {
-  return repository.create(payload);
-}
-
-export async function update(id: string, payload: Record<string, unknown>) {
-  return repository.update(id, payload);
-}
-
-export async function remove(id: string) {
-  return repository.remove(id);
+  static async registrar(data: AsistenciaDTO) {
+    return await AsistenciasRepository.create(data);
+  }
 }
