@@ -21,7 +21,11 @@ async function checkDia(categoriaId: string, dia: string, excluirId?: string) {
 export async function create(categoriaId: string, body: NuevoHorario) {
   await categoriaById(categoriaId);
   await checkDia(categoriaId, body.dia);
-  return repository.create(categoriaId, body);
+  try { return await repository.create(categoriaId, body); }
+  catch (error: any) {
+    if (error?.code === '23505') throw ApiError.conflict('Ya existe un horario para ese dia en la categoria');
+    throw error;
+  }
 }
 export async function update(categoriaId: string, id: string, body: CambiosHorario) {
   const actual = await getById(categoriaId, id);
@@ -29,7 +33,12 @@ export async function update(categoriaId: string, id: string, body: CambiosHorar
     throw ApiError.badRequest('La hora final debe ser posterior');
   }
   if (body.dia !== undefined) await checkDia(categoriaId, body.dia, id);
-  const horario = await repository.update(categoriaId, id, body);
+  let horario;
+  try { horario = await repository.update(categoriaId, id, body); }
+  catch (error: any) {
+    if (error?.code === '23505') throw ApiError.conflict('Ya existe un horario para ese dia en la categoria');
+    throw error;
+  }
   if (!horario) throw ApiError.notFound('Horario no encontrado');
   return horario;
 }
