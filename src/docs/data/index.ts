@@ -19,7 +19,7 @@ import './alumnos.docs';
 import './pagos.docs';
 
 // TODO equipo — agregar aquí cuando cada quien programe su módulo:
-// import './categorias.docs';
+import './categorias.docs';
 // import './profesores.docs';
 // import './asistencias.docs';
 // import './calendario.docs';
