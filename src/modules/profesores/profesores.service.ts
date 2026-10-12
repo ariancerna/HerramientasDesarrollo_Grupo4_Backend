@@ -30,6 +30,12 @@ export async function create(body: NuevoProfesor) {
   }
 }
 export async function update(id: string, body: CambiosProfesor) {
+  if (body.usuario !== undefined) {
+    await getById(id);
+    if (await repository.usuarioExiste(body.usuario, id)) {
+      throw ApiError.conflict('El usuario ya esta registrado');
+    }
+  }
   try { return await repository.update(id, body); } catch (error) { return databaseError(error); }
 }
 export async function asignarCategorias(id: string, ids: string[]) {

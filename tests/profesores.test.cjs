@@ -61,3 +61,24 @@ test('PRF respuestas excluyen password y metadatos de Auth', () => {
   assert.equal(result.password, undefined);
   assert.deepEqual(result.categoriaIds, [id]);
 });
+
+test('PRF editar usuario impide ocupar nombres existentes y permite conservar el propio', async (t) => {
+  t.mock.method(repo, 'findById', async () => ({ id, usuario: 'profe' }));
+  const consultas = [];
+  t.mock.method(repo, 'usuarioExiste', async (usuario, excluirId) => {
+    consultas.push({ usuario, excluirId });
+    return usuario === 'ocupado';
+  });
+  const update = t.mock.method(repo, 'update', async (_id, changes) => ({ id, ...changes }));
+  await assert.rejects(service.update(id, schema.actualizarProfesorSchema.parse({ usuario: ' OCUPADO ' })), { statusCode: 409 });
+  assert.equal(update.mock.callCount(), 0);
+  assert.equal((await service.update(id, { usuario: 'profe' })).usuario, 'profe');
+  assert.deepEqual(consultas, [{ usuario: 'ocupado', excluirId: id }, { usuario: 'profe', excluirId: id }]);
+});
+
+test('PRF cambiar usuario de profesor inexistente devuelve 404 antes de buscar duplicados', async (t) => {
+  t.mock.method(repo, 'findById', async () => null);
+  const check = t.mock.method(repo, 'usuarioExiste', async () => true);
+  await assert.rejects(service.update(id, { usuario: 'ocupado' }), { statusCode: 404 });
+  assert.equal(check.mock.callCount(), 0);
+});

@@ -29,8 +29,11 @@ export async function findById(id: string) {
   if (error) throw error;
   return data ? (await attachCuentas([data]))[0] : null;
 }
-export async function usuarioExiste(usuario: string) {
-  const { data, error } = await supabaseAdmin.from('usuarios').select('id').ilike('usuario', usuario.replace(/[\\%_]/g, '\\$&')).limit(1).maybeSingle();
+export async function usuarioExiste(usuario: string, excluirId?: string) {
+  let query = supabaseAdmin.from('usuarios').select('id')
+    .ilike('usuario', usuario.replace(/[\\%_]/g, '\\$&'));
+  if (excluirId) query = query.neq('id', excluirId);
+  const { data, error } = await query.limit(1).maybeSingle();
   if (error) throw error;
   return Boolean(data);
 }

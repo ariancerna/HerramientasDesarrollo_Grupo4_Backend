@@ -61,3 +61,11 @@ test('PRF propaga errores de cuentas en lugar de devolver perfiles incompletos',
   fixture(t, [{ id: first, nombre: 'Primero', profesores_categorias: [] }], [], true);
   await assert.rejects(repository.findAll(), { code: 'TEST_ERROR' });
 });
+
+test('PRF comprueba usuario literal sin distinguir mayusculas y excluye la cuenta editada', async (t) => {
+  const requests = fixture(t, [], []);
+  assert.equal(await repository.usuarioExiste('profe_12', first), false);
+  assert.equal(requests[0].params.get('usuario'), 'ilike.profe\\_12');
+  assert.equal(requests[0].params.get('id'), `neq.${first}`);
+  assert.equal(requests[0].params.get('limit'), '1');
+});
