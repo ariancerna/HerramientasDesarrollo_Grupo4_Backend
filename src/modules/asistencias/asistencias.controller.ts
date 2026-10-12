@@ -1,44 +1,28 @@
-import { NextFunction, Request, Response } from 'express';
-import { created, ok } from '../../lib/utils/response';
-import * as service from './asistencias.service';
+import { Request, Response } from "express";
+import { AsistenciasService } from "./asistencias.service";
+import { AsistenciaSchema } from "./asistencias.schema";
 
-export async function list(req: Request, res: Response, next: NextFunction) {
-  try {
-    ok(res, await service.list(req.query));
-  } catch (err) {
-    next(err);
+export class AsistenciasController {
+  static async getAsistencias(req: Request, res: Response) {
+    try {
+      const asistencias = await AsistenciasService.obtenerTodas();
+      res.status(200).json({ success: true, data: asistencias });
+    } catch (error: any) {
+      res.status(500).json({ success: false, message: error.message });
+    }
   }
-}
 
-export async function getById(req: Request, res: Response, next: NextFunction) {
-  try {
-    ok(res, await service.getById(req.params.id));
-  } catch (err) {
-    next(err);
-  }
-}
+  static async createAsistencia(req: Request, res: Response) {
+    try {
+      // Validar datos de entrada con Zod
+      const validatedData = AsistenciaSchema.parse(req.body);
+      const nuevaAsistencia = await AsistenciasService.registrar(validatedData);
 
-export async function create(req: Request, res: Response, next: NextFunction) {
-  try {
-    created(res, await service.create(req.body));
-  } catch (err) {
-    next(err);
-  }
-}
-
-export async function update(req: Request, res: Response, next: NextFunction) {
-  try {
-    ok(res, await service.update(req.params.id, req.body));
-  } catch (err) {
-    next(err);
-  }
-}
-
-export async function remove(req: Request, res: Response, next: NextFunction) {
-  try {
-    await service.remove(req.params.id);
-    res.status(204).send();
-  } catch (err) {
-    next(err);
+      res.status(201).json({ success: true, data: nuevaAsistencia });
+    } catch (error: any) {
+      res
+        .status(400)
+        .json({ success: false, message: error.errors || error.message });
+    }
   }
 }
