@@ -15,6 +15,7 @@ const id = '22222222-2222-4222-8222-222222222222';
 const body = { dia: 'lunes', horaInicio: '09:00', horaFin: '11:00' };
 test('HOR valida dias, horas reales, duracion y cambios no vacios', () => {
   assert.equal(schema.crearHorarioSchema.parse({ ...body, dia: 'Lunes' }).dia, 'lunes');
+  for (const dia of ['mi\u00e9rcoles', 's\u00e1bado']) assert.equal(schema.crearHorarioSchema.parse({ ...body, dia }).dia, dia);
   for (const changes of [{ dia: 'feriado' }, { horaInicio: '24:00' }, { horaFin: '09:00' }, { horaFin: '08:59' }, { horaFin: '9:60' }]) {
     assert.equal(schema.crearHorarioSchema.safeParse({ ...body, ...changes }).success, false);
   }
