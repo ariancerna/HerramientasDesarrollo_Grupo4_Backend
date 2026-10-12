@@ -4,24 +4,15 @@ export const CalendarioSchema = z.object({
   titulo: z
     .string()
     .min(3, { message: "El título debe tener al menos 3 caracteres" }),
-  descripcion: z.string().optional(),
-  fecha_inicio: z
+  fecha: z.string({ required_error: "La fecha es obligatoria" }), // Formato YYYY-MM-DD o ISO
+  hora_inicio: z.string({ required_error: "La hora de inicio es obligatoria" }),
+  hora_fin: z.string({ required_error: "La hora de fin es obligatoria" }),
+  ubicacion: z.string().optional(),
+  categoria_id: z
     .string()
-    .datetime({
-      message: "La fecha de inicio debe tener un formato ISO 8601 válido",
-    }),
-  fecha_fin: z
-    .string()
-    .datetime({
-      message: "La fecha de fin debe tener un formato ISO 8601 válido",
-    }),
-  tipo_evento: z.enum(["ENTRENAMIENTO", "PARTIDO", "REUNION", "OTRO"], {
-    required_error: "El tipo de evento es obligatorio",
-  }),
-  sede_id: z
-    .string()
-    .uuid({ message: "El ID de la sede debe ser un UUID válido" })
+    .uuid({ message: "El ID de la categoría debe ser un UUID válido" })
     .optional(),
+  descripcion: z.string().optional(),
 });
 
 export const ActualizarCalendarioSchema = CalendarioSchema.partial();
