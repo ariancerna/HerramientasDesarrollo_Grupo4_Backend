@@ -11,6 +11,7 @@ const { errorMiddleware } = require('../dist/middlewares/error.middleware');
 const categorias = require('../dist/modules/categorias/categorias.service');
 const horarios = require('../dist/modules/horarios/horarios.service');
 const profesores = require('../dist/modules/profesores/profesores.service');
+const usuarios = require('../dist/modules/usuarios/usuarios.service');
 const adminId = '11111111-1111-4111-8111-111111111111';
 const alumnoId = '22222222-2222-4222-8222-222222222222';
 const id = '33333333-3333-4333-8333-333333333333';
@@ -71,6 +72,24 @@ async function iniciarServidor(t, montarRouterPrincipal = false) {
   );
 }
 
+
+test('USR-01 conserva la creacion de cuenta de alumno en el router principal', async (t) => {
+  const calls = [];
+  t.mock.method(usuarios, 'crearCuentaParaAlumno', async (...args) => {
+    calls.push(args);
+    return { mensaje: 'Cuenta creada correctamente para el alumno.' };
+  });
+  const request = await iniciarServidor(t);
+  const path = `/api/v1/alumnos/${alumnoId}/cuenta`;
+  const body = { usuario: 'alumno.nuevo', password: 'secreto123' };
+  assert.equal((await request(path, { method: 'POST', body })).status, 401);
+  assert.equal((await request(path, { token: 'alumno-token', method: 'POST', body })).status, 403);
+  assert.equal((await request(path, { token: 'admin-token', method: 'POST', body: {} })).status, 400);
+  assert.equal(calls.length, 0);
+  const response = await request(path, { token: 'admin-token', method: 'POST', body });
+  assert.equal(response.status, 201);
+  assert.deepEqual(calls, [[alumnoId, body.usuario, body.password]]);
+});
 
 test('CAT HOR PRF HTTP valida autenticacion, roles, cuerpos y UUID antes de escribir', async (t) => {
   const calls = [];
