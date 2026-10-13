@@ -9,7 +9,8 @@ const router = Router();
 
 // CFG-01 / CFG-02
 router.get('/me/configuracion', requireAuth, validateQuery(miConfigQuerySchema), controller.miConfig);
-router.patch('/me/configuracion', requireAuth, validateBody(miConfigSchema), controller.actualizarMiConfig);
+router.patch('/me/configuracion', requireAuth, validateQuery(miConfigQuerySchema),
+  validateBody(miConfigSchema), controller.actualizarMiConfig);
 // CFG-03 / CFG-04 (opcionales)
 router.get('/configuracion/club', requireAuth, requireRole('ADM'), controller.configClub);
 router.put('/configuracion/club', requireAuth, requireRole('ADM'), validateBody(configClubSchema), controller.actualizarConfigClub);

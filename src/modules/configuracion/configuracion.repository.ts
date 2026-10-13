@@ -1,5 +1,7 @@
 import { supabaseAdmin } from '../../config/supabase';
 import type { ConfiguracionUsuarioRow, MiConfiguracion } from './configuracion.types';
+import type { CambiosMiConfiguracion } from './configuracion.schema';
+import { ApiError } from '../../lib/errors/api-error';
 
 export function presentarMiConfig(row: ConfiguracionUsuarioRow): MiConfiguracion {
   return { tema: row.tema, notificacionesSilenciadas: row.notificaciones_silenciadas };
@@ -12,14 +14,16 @@ export async function obtenerMiConfig(usuarioId: string): Promise<MiConfiguracio
   return data ? presentarMiConfig(data) : { tema: 'sistema', notificacionesSilenciadas: false };
 }
 
-export async function actualizarMiConfig(usuarioId: string, cambios: Record<string, unknown>) {
-  const { data, error } = await supabaseAdmin
-    .from('configuraciones_usuario')
-    .upsert({ usuario_id: usuarioId, ...cambios })
-    .select()
-    .single();
+export async function actualizarMiConfig(usuarioId: string, cambios: CambiosMiConfiguracion): Promise<MiConfiguracion> {
+  // ON CONFLICT aplica exclusivamente los campos enviados, sin lecturas previas.
+  const { data, error } = await supabaseAdmin.rpc('actualizar_configuracion_usuario', {
+    p_usuario_id: usuarioId,
+    p_tema: cambios.tema ?? null,
+    p_silenciadas: cambios.notificacionesSilenciadas ?? null,
+  }).single<ConfiguracionUsuarioRow>();
   if (error) throw error;
-  return data;
+  if (!data) throw ApiError.internal('No se pudo confirmar la configuración guardada');
+  return presentarMiConfig(data);
 }
 
 export async function obtenerConfigClub() {
