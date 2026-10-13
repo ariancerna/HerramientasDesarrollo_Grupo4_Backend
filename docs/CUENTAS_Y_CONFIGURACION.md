@@ -55,8 +55,6 @@ PostgREST; % y _ se escapan. Orden estable por apellidos, nombres e id.
 Se conserva la envoltura existente data: {data: [], page, limit, total, totalPages}.
 Sin resultados, totalPages es cero, no uno.
 
-## Ejecución local
-
 ## CFG-01 / SCRUM-143 — GET /me/configuracion
 
 Todos los roles activos. El UUID sale del token, no de parámetros del cliente.
@@ -66,8 +64,70 @@ Sin configuración guardada devuelve sistema y false, sin crear una fila.
 Un error de base de datos devuelve 500, nunca valores por defecto engañosos.
 Parámetros desconocidos o de suplantación devuelven 400.
 
-## Probar localmente
+## CFG-02 / SCRUM-144 — PATCH /me/configuracion
+
+Todos los roles activos. JSON no vacío con tema y/o notificacionesSilenciadas.
+Sin null, campos desconocidos ni usuarioId. Devuelve 200 con el mismo formato
+que GET. Campos omitidos conservan su valor y false se guarda correctamente.
+Sin fila, usa los valores por defecto solo para las preferencias no enviadas.
+Errores de validación: 400; falta de token: 401; cuenta inactiva: 403;
+fallos de guardado: 500, sin fingir éxito.
+
+Aplicar 20261012211000_configuracion_parcial_atomica.sql antes del uso real.
+La función INSERT ... ON CONFLICT aplica cada campo dentro de una sola escritura.
+Dos cambios concurrentes a campos distintos se conservan; sobre el mismo campo
+prevalece la última escritura. La RPC solo puede ejecutarla service_role y el
+backend toma el propietario del token.
+
+## Migraciones y alcance
+
+No se aplicó ninguna migración al Supabase compartido.
+Sobre el esquema inicial, comprobar las migraciones de dev para día único de
+horarios y transacciones de profesores, y después las dos nuevas de cuentas y
+configuración, en orden de nombre. La creación de índices se detiene si ya hay
+duplicados: revisar con el equipo, no borrar registros automáticamente.
+USR-01 y CFG-02 requieren estas migraciones para funcionar en la base real.
+
+La auditoría, las pruebas HTTP con transporte ficticio y Postgres embebido no
+confirman conectividad ni políticas del Supabase desplegado. Verificar con los
+datos de prueba del equipo después de aplicar las migraciones.
+
+## Verificación y Git
+
+Usar Node.js 22 o superior. En la carpeta del backend:
+
+    npm ci
+    npm run typecheck
+    npm test
+    npm run dev
+
+Se usaron estos pasos Git (la rama ya existe; no repetir su creación):
+
+    git status --short --branch
+    git branch -vv
+    git remote -v
+    git fetch origin --prune
+    git switch -c feature/cuentas-alumnos-y-configuracion
+    git merge --no-commit --no-ff origin/dev
+
+Tras revisar y resolver los conflictos, se prepararon archivos explícitos con
+git add y se creó un commit de integración. Cada endpoint tiene dos commits:
+implementación y pruebas/documentación. No se hizo rebase, reset ni force push.
+Para comparar y revisar el resultado local:
+
+    git status
+    git log --oneline origin/dev..HEAD
+    git diff --stat origin/dev..HEAD
+    git diff --check
+
+No se ejecutó git push ni se incorporaron cambios de funcionalidad a dev. La publicación requiere
+la autorización posterior del usuario; no incorporar a dev sin revisión del equipo.
 
 Ejecutar npm run typecheck y npm test en la carpeta del backend.
 Swagger: http://localhost:4000/api/v1/docs al iniciar npm run dev.
 Las pruebas locales usan datos ficticios; no modifican Supabase compartido.
+
+Auditoría de dependencias: tres alertas altas en la cadena de desarrollo
+ts-node-dev -> chokidar -> braces, heredadas de dev y sin corrección automática
+disponible según npm audit. No se cambió el ejecutor ni el lockfile para ocultarlas.
+Se recomienda revisar ese cambio de herramienta con el equipo.
