@@ -18,8 +18,6 @@ del token y actualiza como ese usuario. Finalmente cierra solo esa sesión tempo
 No muta el cliente compartido ni registra contraseñas o tokens.
 No promete cerrar todas las sesiones previas: su revocación sigue la política de Supabase.
 
-## Verificación
-
 ## USR-01 / SCRUM-49 — POST /alumnos/:id/cuenta
 
 Solo ADM. UUID de alumno existente; JSON estricto con usuario (3–50 caracteres,
@@ -37,6 +35,15 @@ cuenta Auth. Si esa compensación falla, se devuelve AUTH_CLEANUP_REQUIRED con
 authUserId para limpieza administrativa; nunca se elimina una cuenta previa.
 
 ## Verificación local
+
+## SED-02 / SCRUM-52 — GET /sedes/:id
+
+Cualquier cuenta activa autenticada. UUID válido obligatorio; devuelve 200 con
+data: id, nombre, direccion (nullable) y created_at. UUID inválido: 400;
+sede inexistente: 404; fallo de base de datos: 500 sin detalles internos.
+No requiere nuevas migraciones ni cambia las otras rutas CRUD de sedes.
+
+## Cómo ejecutar las pruebas
 
 Ejecutar npm run typecheck y npm test en la carpeta del backend.
 Swagger: http://localhost:4000/api/v1/docs al iniciar npm run dev.
