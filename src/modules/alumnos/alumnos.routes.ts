@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { requireAuth } from '../../middlewares/auth.middleware';
 import { requireRole } from '../../middlewares/role.middleware';
-import { validateBody } from '../../middlewares/validate.middleware';
+import { validateBody, validateQuery } from '../../middlewares/validate.middleware';
+import { alumnosQuerySchema } from './alumnos.schema';
 import { upload } from '../../middlewares/upload.middleware';
 import * as controller from './alumnos.controller';
 import {
@@ -44,6 +45,6 @@ router.patch('/:id/estado', requireAuth, requireRole('ADM'), validateBody(cambia
 router.delete('/:id', requireAuth, requireRole('ADM'), controller.remove);
 
 // ALU-01: Listado paginado
-router.get('/', requireAuth, controller.list);
+router.get('/', requireAuth, requireRole('ADM', 'PROF'), validateQuery(alumnosQuerySchema), controller.list);
 
 export default router;

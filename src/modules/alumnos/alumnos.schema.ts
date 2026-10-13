@@ -1,5 +1,17 @@
 import { z } from 'zod';
 
+const enteroQuery = (defaultValue: string, max: number) => z.string()
+  .regex(/^[1-9]\d*$/, 'Debe ser un entero positivo')
+  .default(defaultValue).transform(Number).pipe(z.number().int().min(1).max(max));
+export const alumnosQuerySchema = z.object({
+  texto: z.string().trim().max(100).refine((value) => !/[\x00-\x1f*]/.test(value),
+    'El texto no admite caracteres de control ni comodines').optional(),
+  categoriaId: z.string().uuid().optional(),
+  estado: z.enum(['activo', 'inactivo']).optional(),
+  page: enteroQuery('1', 1_000_000),
+  limit: enteroQuery('20', 100),
+}).strict();
+
 const dniSchema = z.string().regex(/^\d{8}$/, 'El DNI debe tener exactamente 8 dígitos');
 const telefonoSchema = z.string().regex(/^\d{9}$/, 'El teléfono debe tener exactamente 9 dígitos').optional();
 

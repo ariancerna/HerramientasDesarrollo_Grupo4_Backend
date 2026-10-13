@@ -21,8 +21,12 @@ export async function findAll(filters: Record<string, unknown> = {}) {
     .select('*, categorias(*)', { count: 'exact' });
 
   if (typeof filters.texto === 'string' && filters.texto.trim()) {
-    const texto = filters.texto.trim();
-    query = query.or(`nombres.ilike.%${texto}%,apellidos.ilike.%${texto}%,dni.ilike.%${texto}%,codigo.ilike.%${texto}%`);
+    const literal = filters.texto.trim().replace(/[\\%_]/g, '\\$&');
+    // PostgREST exige comillas para caracteres reservados dentro de un valor.
+    // https://docs.postgrest.org/en/stable/references/api/url_grammar.html
+    const pattern = '"%' + literal.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '%"';
+    query = query.or(['nombres', 'apellidos', 'dni', 'codigo']
+      .map((campo) => campo + '.ilike.' + pattern).join(','));
   }
 
   if (typeof filters.categoriaId === 'string' && filters.categoriaId) {
@@ -42,7 +46,7 @@ export async function findAll(filters: Record<string, unknown> = {}) {
   const from = Number(filters.from ?? (page - 1) * limit);
   const to = Number(filters.to ?? from + limit - 1);
 
-  query = query.range(from, to);
+  query = query.order('apellidos').order('nombres').order('id').range(from, to);
 
   const { data, error, count } = await query;
   if (error) throw error;
@@ -52,7 +56,7 @@ export async function findAll(filters: Record<string, unknown> = {}) {
     page,
     limit,
     total: count ?? 0,
-    totalPages: Math.max(1, Math.ceil((count ?? 0) / Math.max(1, limit))) || 0,
+    totalPages: Math.ceil((count ?? 0) / limit),
   };
 }
 
