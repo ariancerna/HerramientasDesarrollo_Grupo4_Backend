@@ -1,5 +1,6 @@
 import { ApiError } from '../../lib/errors/api-error';
 import * as repository from './auth.repository';
+import { crearCuentaParaAlumno } from '../usuarios/usuarios.service';
 
 export async function login(usuario: string, password: string) {
   const email = await repository.findEmailByUsuario(usuario);
@@ -36,36 +37,17 @@ export async function register(dni: string, usuario: string, password: string) {
   if (!alumno) {
     throw ApiError.notFound('No encontramos un alumno con ese DNI. Pide a un administrador que te registre primero.');
   }
-
-  const yaTieneCuenta = await repository.alumnoTieneUsuario(alumno.id);
-  if (yaTieneCuenta) {
-    throw ApiError.conflict('Este alumno ya tiene una cuenta. Si olvidaste tu contraseña, usa "Recuperar contraseña".');
+  // Las restricciones nuevas son compartidas: mismo rollback y vinculación que USR-01.
+  try {
+    await crearCuentaParaAlumno(alumno.id, usuario, password);
+  } catch (error) {
+    if (error instanceof ApiError && error.code === 'AUTH_CLEANUP_REQUIRED') {
+      // El UUID pendiente solo corresponde al operador, no a una respuesta pública.
+      console.error('AUTH_CLEANUP_REQUIRED durante registro público', error.details);
+      throw ApiError.internal('No se pudo completar el registro; contacta a administración');
+    }
+    throw error;
   }
-
-  const usuarioOcupado = await repository.usuarioExiste(usuario);
-  if (usuarioOcupado) {
-    throw ApiError.conflict('Ese nombre de usuario ya está en uso.');
-  }
-
-  if (!alumno.email) {
-    throw ApiError.badRequest('Tu perfil no tiene un correo registrado; pide a un administrador que lo agregue antes de registrarte.');
-  }
-
-  const nombreCompleto = `${alumno.nombres} ${alumno.apellidos}`;
-  const { data, error } = await repository.crearCuentaAuth(alumno.email, password, nombreCompleto);
-  if (error || !data.user) {
-    throw ApiError.badRequest(error?.message ?? 'No se pudo crear la cuenta');
-  }
-
-  await repository.insertarUsuario({
-    id: data.user.id,
-    usuario,
-    email: alumno.email,
-    nombre: nombreCompleto,
-    rol: 'ALU',
-    estudianteId: alumno.id,
-  });
-
   return { mensaje: 'Cuenta creada correctamente. Ya puedes iniciar sesión.' };
 }
 

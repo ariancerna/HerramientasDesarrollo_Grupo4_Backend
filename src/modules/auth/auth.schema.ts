@@ -7,9 +7,9 @@ export const loginSchema = z.object({
 
 export const registerSchema = z.object({
   dni: z.string().regex(/^\d{8}$/, 'El DNI debe tener 8 dígitos'),
-  usuario: z.string().min(3, 'El usuario debe tener al menos 3 caracteres'),
+  usuario: z.string().trim().min(3, 'El usuario debe tener al menos 3 caracteres').max(50),
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
-});
+}).strict();
 
 export const forgotPasswordSchema = z.object({
   correo: z.string().email(),

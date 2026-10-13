@@ -81,6 +81,14 @@ backend toma el propietario del token.
 
 ## Migraciones y alcance
 
+Las restricciones de cuentas también se usan desde el registro público existente
+(AUTH-05). Se conserva su contrato por DNI y su mensaje de éxito, delegando en la
+misma creación/compensación de USR-01. La consulta de disponibilidad de usuario
+respeta la unicidad sin distinguir mayúsculas. Un commit adicional de
+compatibilidad evita introducir regresiones en ese flujo compartido.
+Si la compensación falla en un registro público, su UUID de limpieza solo se
+registra para el operador; no se incluye en la respuesta anónima.
+
 No se aplicó ninguna migración al Supabase compartido.
 Sobre el esquema inicial, comprobar las migraciones de dev para día único de
 horarios y transacciones de profesores, y después las dos nuevas de cuentas y
@@ -122,6 +130,13 @@ Para comparar y revisar el resultado local:
 
 No se ejecutó git push ni se incorporaron cambios de funcionalidad a dev. La publicación requiere
 la autorización posterior del usuario; no incorporar a dev sin revisión del equipo.
+
+La rama local dev se sincroniza únicamente con el historial oficial, por avance
+directo, y se vuelve a la rama de trabajo:
+
+    git switch dev
+    git merge --ff-only origin/dev
+    git switch feature/cuentas-alumnos-y-configuracion
 
 Ejecutar npm run typecheck y npm test en la carpeta del backend.
 Swagger: http://localhost:4000/api/v1/docs al iniciar npm run dev.
