@@ -1,4 +1,46 @@
-import { supabaseAdmin, supabaseAnon } from '../../config/supabase';
+import { crearClienteAuthAislado, supabaseAdmin, supabaseAnon } from '../../config/supabase';
+import { ApiError } from '../../lib/errors/api-error';
+
+function passwordError(error: { code?: string; status?: number }, verificar = false): never {
+  if (error.status === 429 || error.code === 'over_request_rate_limit') {
+    throw new ApiError(429, 'TOO_MANY_REQUESTS', 'Demasiados intentos; vuelve a intentarlo más tarde');
+  }
+  if (verificar && error.code === 'invalid_credentials') {
+    throw ApiError.unauthorized('La contraseña actual no es correcta');
+  }
+  if (['weak_password', 'same_password'].includes(error.code ?? '')) {
+    throw ApiError.badRequest('La nueva contraseña no cumple la política de seguridad');
+  }
+  throw ApiError.internal('No se pudo actualizar la contraseña');
+}
+
+/** AUTH-10: una sesión temporal por petición, nunca modifica el cliente compartido. */
+export async function cambiarPasswordPropia(email: string, id: string, actual: string, nueva: string) {
+  const client = crearClienteAuthAislado();
+  let sesionCreada = false;
+  try {
+    const { data, error } = await client.auth.signInWithPassword({ email, password: actual });
+    if (error) passwordError(error, true);
+    sesionCreada = Boolean(data.session);
+    if (!data.session || data.user?.id !== id) {
+      throw ApiError.unauthorized('No se pudo verificar la identidad de la cuenta');
+    }
+    // Actualización como usuario autenticado, no con privilegios de service_role.
+    const result = await client.auth.updateUser({ password: nueva });
+    if (result.error) passwordError(result.error);
+    if (result.data.user?.id !== id) throw ApiError.internal('No se pudo confirmar la actualización');
+  } finally {
+    if (sesionCreada) {
+      try {
+        const { error } = await client.auth.signOut({ scope: 'local' });
+        if (error) throw error;
+      } catch {
+        // No registrar tokens/contraseñas ni ocultar el resultado original del cambio.
+        console.error('No se pudo cerrar la sesión temporal de cambio de contraseña');
+      }
+    }
+  }
+}
 
 /**
  * AUTH-01: login. El front manda "usuario", pero Supabase Auth trabaja con

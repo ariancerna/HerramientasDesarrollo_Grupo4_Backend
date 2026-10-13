@@ -28,6 +28,8 @@ export const resetPasswordSchema = z.object({
 export const changePasswordSchema = z.object({
   passwordActual: z.string().min(1),
   passwordNueva: z.string().min(6),
+}).strict().refine((body) => body.passwordActual !== body.passwordNueva, {
+  message: 'La nueva contraseña debe ser distinta de la actual', path: ['passwordNueva'],
 });
 
 export const refreshSchema = z.object({

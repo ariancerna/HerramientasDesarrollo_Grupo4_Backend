@@ -107,9 +107,6 @@ export async function resetPassword(resetToken: string, nuevaPassword: string) {
 
 /** AUTH-10 — Cambiar contraseña estando logueado (pide la actual primero). */
 export async function changePassword(email: string, id: string, passwordActual: string, passwordNueva: string) {
-  const { error } = await repository.signInWithPassword(email, passwordActual);
-  if (error) throw ApiError.unauthorized('La contraseña actual no es correcta.');
-
-  await repository.actualizarPasswordAuth(id, passwordNueva);
+  await repository.cambiarPasswordPropia(email, id, passwordActual, passwordNueva);
   return { mensaje: 'Contraseña actualizada correctamente.' };
 }
