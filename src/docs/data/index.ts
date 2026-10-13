@@ -28,4 +28,4 @@ import './profesores.docs';
 // import './anuncios.docs';
 // import './notificaciones.docs';
 // import './reportes.docs';
-// import './configuracion.docs';
+import './configuracion.docs';

@@ -41,8 +41,6 @@ data: id, nombre, direccion (nullable) y created_at. UUID inválido: 400;
 sede inexistente: 404; fallo de base de datos: 500 sin detalles internos.
 No requiere nuevas migraciones ni cambia las otras rutas CRUD de sedes.
 
-## Cómo ejecutar las pruebas
-
 ## ALU-01 / SCRUM-108 — GET /alumnos
 
 ADM consulta el listado completo; PROF solo sus categorías asignadas, resueltas
@@ -58,6 +56,17 @@ Se conserva la envoltura existente data: {data: [], page, limit, total, totalPag
 Sin resultados, totalPages es cero, no uno.
 
 ## Ejecución local
+
+## CFG-01 / SCRUM-143 — GET /me/configuracion
+
+Todos los roles activos. El UUID sale del token, no de parámetros del cliente.
+La ruta correcta es /api/v1/me/configuracion, sin prefijo duplicado.
+Devuelve data: {tema: claro|oscuro|sistema, notificacionesSilenciadas: boolean}.
+Sin configuración guardada devuelve sistema y false, sin crear una fila.
+Un error de base de datos devuelve 500, nunca valores por defecto engañosos.
+Parámetros desconocidos o de suplantación devuelven 400.
+
+## Probar localmente
 
 Ejecutar npm run typecheck y npm test en la carpeta del backend.
 Swagger: http://localhost:4000/api/v1/docs al iniciar npm run dev.
