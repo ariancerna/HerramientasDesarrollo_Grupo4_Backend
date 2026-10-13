@@ -34,8 +34,6 @@ Auth no participa en la transacción SQL: ante fallo se elimina solo la nueva
 cuenta Auth. Si esa compensación falla, se devuelve AUTH_CLEANUP_REQUIRED con
 authUserId para limpieza administrativa; nunca se elimina una cuenta previa.
 
-## Verificación local
-
 ## SED-02 / SCRUM-52 — GET /sedes/:id
 
 Cualquier cuenta activa autenticada. UUID válido obligatorio; devuelve 200 con
@@ -44,6 +42,22 @@ sede inexistente: 404; fallo de base de datos: 500 sin detalles internos.
 No requiere nuevas migraciones ni cambia las otras rutas CRUD de sedes.
 
 ## Cómo ejecutar las pruebas
+
+## ALU-01 / SCRUM-108 — GET /alumnos
+
+ADM consulta el listado completo; PROF solo sus categorías asignadas, resueltas
+desde su vínculo real o su UUID Auth. ALU recibe 403. Un profesor sin categorías
+recibe una página vacía sin consultar todos los alumnos.
+
+Filtros: texto (máximo 100 caracteres, sin controles ni *), categoriaId (UUID),
+estado (activo/inactivo), page (1–1000000; defecto 1), limit (1–100; defecto 20).
+Parámetros repetidos, fracciones y campos desconocidos devuelven 400.
+Los caracteres reservados del texto se entrecomillan según la gramática de
+PostgREST; % y _ se escapan. Orden estable por apellidos, nombres e id.
+Se conserva la envoltura existente data: {data: [], page, limit, total, totalPages}.
+Sin resultados, totalPages es cero, no uno.
+
+## Ejecución local
 
 Ejecutar npm run typecheck y npm test en la carpeta del backend.
 Swagger: http://localhost:4000/api/v1/docs al iniciar npm run dev.

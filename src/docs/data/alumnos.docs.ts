@@ -33,12 +33,13 @@ const perfilResponseSchema = {
 };
 
 const paginationParams: OpenApiParameter[] = [
-  { name: 'page', in: 'query', required: false, schema: { type: 'integer', minimum: 1, default: 1 } },
+  { name: 'page', in: 'query', required: false, schema: { type: 'integer', minimum: 1, maximum: 1000000, default: 1 } },
   { name: 'limit', in: 'query', required: false, schema: { type: 'integer', minimum: 1, maximum: 100, default: 20 } },
 ];
 
 const listQueryParams: OpenApiParameter[] = [
-  { name: 'texto', in: 'query', required: false, schema: { type: 'string' } },
+  { name: 'texto', in: 'query', required: false, schema: { type: 'string', maxLength: 100,
+    description: 'Búsqueda parcial; sin controles ni comodín *. Los caracteres reservados se protegen.' } },
   { name: 'categoriaId', in: 'query', required: false, schema: { type: 'string', format: 'uuid' } },
   { name: 'estado', in: 'query', required: false, schema: { type: 'string', enum: ['activo', 'inactivo'] } },
   ...paginationParams,
