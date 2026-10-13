@@ -19,8 +19,9 @@ export interface EndpointDoc {
   /** Marca real de si YA está programado (no solo la ruta creada, sino la lógica). */
   implementado: boolean;
   parameters?: OpenApiParameter[];
+  queryParams?: OpenApiParameter[];
   requestBody?: Record<string, unknown>;
-  responses?: Record<string, unknown>;
+  responses?: Record<string, Record<string, unknown>>;
 }
 
 export interface ModuloDoc {

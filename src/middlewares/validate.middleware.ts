@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
-import { AnyZodObject, ZodError, ZodTypeAny } from 'zod';
+import { ZodError, ZodTypeAny } from 'zod';
 import { ApiError } from '../lib/errors/api-error';
 
 /** Valida req.body contra un schema de Zod antes de llegar al controller. */
@@ -12,8 +12,7 @@ export function validateBody(schema: ZodTypeAny) {
       if (err instanceof ZodError) {
         const { fieldErrors, formErrors } = err.flatten();
         return next(ApiError.badRequest('Datos inválidos', {
-          ...fieldErrors,
-          ...(formErrors.length ? { _form: formErrors } : {}),
+          ...fieldErrors, ...(formErrors.length ? { _form: formErrors } : {}),
         }));
       }
       next(err);
@@ -21,15 +20,30 @@ export function validateBody(schema: ZodTypeAny) {
   };
 }
 
-/** Valida parámetros anidados antes de ejecutar consultas de base de datos. */
-export function validateParams(schema: AnyZodObject) {
+/** Valida req.query contra un schema de Zod antes de llegar al controller. */
+export function validateQuery(schema: ZodTypeAny) {
+  return (req: Request, _res: Response, next: NextFunction) => {
+    try {
+      req.query = schema.parse(req.query);
+      next();
+    } catch (err) {
+      if (err instanceof ZodError) {
+        return next(ApiError.badRequest('Parámetros inválidos', err.flatten().fieldErrors));
+      }
+      next(err);
+    }
+  };
+}
+
+/** Valida req.params contra un schema de Zod antes de llegar al controller. */
+export function validateParams(schema: ZodTypeAny) {
   return (req: Request, _res: Response, next: NextFunction) => {
     try {
       req.params = schema.parse(req.params);
       next();
     } catch (err) {
       if (err instanceof ZodError) {
-        return next(ApiError.badRequest('Parámetros inválidos', err.flatten().fieldErrors));
+        return next(ApiError.badRequest('Parámetros de ruta inválidos', err.flatten().fieldErrors));
       }
       next(err);
     }

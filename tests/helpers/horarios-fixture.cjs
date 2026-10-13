@@ -54,7 +54,7 @@ async function createFixture(t, options = {}) {
           message: 'private database detail' }), { status: 400 });
       }
       const matches = (row) => [...url.searchParams].every(([key, value]) =>
-        key === 'select' || (value.startsWith('eq.') && String(row[key]) === value.slice(3)));
+        ['select', 'order'].includes(key) || (value.startsWith('eq.') && String(row[key]) === value.slice(3)));
       let data = rows[table].filter(matches);
       if (method === 'DELETE') {
         rows[table] = rows[table].filter((row) => !matches(row));
@@ -69,7 +69,7 @@ async function createFixture(t, options = {}) {
         for (const row of data) Object.assign(row, body);
       }
       const select = url.searchParams.get('select');
-      if (select && select !== '*') {
+      if (select && !select.includes('*')) {
         data = data.map((row) => Object.fromEntries(select.split(',').map((key) => [key, row[key]])));
       }
       const headers = new Headers(init.headers);

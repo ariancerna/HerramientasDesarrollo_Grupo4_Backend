@@ -1,50 +1,41 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { supabaseAdmin } from '../../config/supabase';
-import { ApiError } from '../../lib/errors/api-error';
-import type { HorarioChanges, HorarioRow } from './horarios.types';
-
-const columnas = 'id,categoria_id,dia,hora_inicio,hora_fin,cancha,estado,created_at';
-
-function comprobarError(error: { code?: string } | null) {
-  if (!error) return;
-  if (error.code === '23503') throw ApiError.conflict('El horario tiene registros asociados y no puede eliminarse');
-  throw error;
+import { CambiosHorario } from './horarios.schema';
+import { presentHorario, presentHorarios } from '../../lib/utils/horarios';
+export { presentHorario } from '../../lib/utils/horarios';
+const TABLE = 'horarios';
+function toRow(body: CambiosHorario) {
+  const row: Record<string, unknown> = {};
+  if (body.dia !== undefined) row.dia = body.dia.charAt(0).toUpperCase() + body.dia.slice(1);
+  if (body.horaInicio !== undefined) row.hora_inicio = body.horaInicio;
+  if (body.horaFin !== undefined) row.hora_fin = body.horaFin;
+  if (body.cancha !== undefined) row.cancha = body.cancha;
+  if (body.estado !== undefined) row.estado = body.estado;
+  return row;
 }
-
-export function crearHorariosRepository(client: SupabaseClient) {
-  return {
-    async categoriaExiste(categoriaId: string): Promise<boolean> {
-      const { data, error } = await client.from('categorias').select('id').eq('id', categoriaId).maybeSingle();
-      if (error) throw error;
-      return data !== null;
-    },
-
-    async eliminar(categoriaId: string, horarioId: string): Promise<boolean> {
-      // Ambos filtros se aplican en la escritura, no solo en una consulta previa.
-      const { data, error } = await client.from('horarios').delete()
-        .eq('id', horarioId).eq('categoria_id', categoriaId).select('id').maybeSingle();
-      comprobarError(error);
-      return data !== null;
-    },
-
-    async buscar(categoriaId: string, horarioId: string): Promise<HorarioRow | null> {
-      const { data, error } = await client.from('horarios').select(columnas)
-        .eq('id', horarioId).eq('categoria_id', categoriaId).maybeSingle();
-      if (error) throw error;
-      return data;
-    },
-
-    async actualizar(categoriaId: string, horarioId: string, changes: HorarioChanges): Promise<HorarioRow | null> {
-      const { data, error } = await client.from('horarios').update(changes)
-        .eq('id', horarioId).eq('categoria_id', categoriaId).select(columnas).maybeSingle();
-      // La restricción SQL protege también frente a cambios concurrentes de horas.
-      if (error?.code === '23514') {
-        throw ApiError.badRequest('La hora final debe ser mayor a la hora inicial');
-      }
-      if (error) throw error;
-      return data;
-    },
-  };
+export async function findAll(categoriaId: string, filters: Record<string, unknown> = {}) {
+  let query = supabaseAdmin.from(TABLE).select('*').eq('categoria_id', categoriaId).order('hora_inicio').order('id');
+  if (filters.estado) query = query.eq('estado', filters.estado);
+  const { data, error } = await query;
+  if (error) throw error;
+  return presentHorarios(data ?? []);
 }
-
-export const horariosRepository = crearHorariosRepository(supabaseAdmin);
+export async function findById(categoriaId: string, id: string) {
+  const { data, error } = await supabaseAdmin.from(TABLE).select('*').eq('categoria_id', categoriaId).eq('id', id).maybeSingle();
+  if (error) throw error;
+  return data ? presentHorario(data) : null;
+}
+export async function create(categoriaId: string, body: CambiosHorario) {
+  const { data, error } = await supabaseAdmin.from(TABLE).insert({ ...toRow(body), categoria_id: categoriaId }).select().single();
+  if (error) throw error;
+  return presentHorario(data);
+}
+export async function update(categoriaId: string, id: string, body: CambiosHorario) {
+  const { data, error } = await supabaseAdmin.from(TABLE).update(toRow(body)).eq('categoria_id', categoriaId).eq('id', id).select().maybeSingle();
+  if (error) throw error;
+  return data ? presentHorario(data) : null;
+}
+export async function remove(categoriaId: string, id: string) {
+  const { data, error } = await supabaseAdmin.from(TABLE).delete().eq('categoria_id', categoriaId).eq('id', id).select('id').maybeSingle();
+  if (error) throw error;
+  return data;
+}

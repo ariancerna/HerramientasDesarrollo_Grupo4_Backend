@@ -1,12 +1,11 @@
 import { NextFunction, Request, Response } from 'express';
+import { MulterError } from 'multer';
 import { ApiError } from '../lib/errors/api-error';
 import { env } from '../config/env';
 
 // Middleware de errores: SIEMPRE va al final, después de montar todas las rutas.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function errorMiddleware(err: unknown, _req: Request, res: Response, _next: NextFunction) {
-  // Express rechaza JSON malformado/primitivo antes de la validación del módulo.
-  // Solo se reconocen errores conocidos del parser, nunca mensajes internos.
   if (typeof err === 'object' && err !== null && 'type' in err && 'status' in err) {
     if (err.type === 'entity.parse.failed' && err.status === 400) {
       return res.status(400).json({
@@ -18,6 +17,17 @@ export function errorMiddleware(err: unknown, _req: Request, res: Response, _nex
         error: { code: 'PAYLOAD_TOO_LARGE', message: 'El cuerpo de la solicitud es demasiado grande' },
       });
     }
+  }
+  if (err instanceof MulterError) {
+    const demasiadoGrande = err.code === 'LIMIT_FILE_SIZE';
+    return res.status(demasiadoGrande ? 413 : 400).json({
+      error: {
+        code: demasiadoGrande ? 'PAYLOAD_TOO_LARGE' : 'BAD_REQUEST',
+        message: demasiadoGrande
+          ? 'La imagen no debe superar 1.5 MB'
+          : 'Adjunta una sola imagen en el campo foto',
+      },
+    });
   }
 
   if (err instanceof ApiError) {

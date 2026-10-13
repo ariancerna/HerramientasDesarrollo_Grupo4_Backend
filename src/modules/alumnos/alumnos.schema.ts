@@ -1,6 +1,31 @@
 import { z } from 'zod';
 
-// TODO: reemplazar por los campos reales de alumno (ver docs/ENDPOINTS.md, módulo ALUMNOS).
-export const crearAlumnoSchema = z.object({});
+const dniSchema = z.string().regex(/^\d{8}$/, 'El DNI debe tener exactamente 8 dígitos');
+const telefonoSchema = z.string().regex(/^\d{9}$/, 'El teléfono debe tener exactamente 9 dígitos').optional();
+
+export const crearAlumnoSchema = z.object({
+  dni: dniSchema,
+  nombres: z.string().trim().min(1, 'Los nombres son obligatorios'),
+  apellidos: z.string().trim().min(1, 'Los apellidos son obligatorios'),
+  email: z.string().trim().email('El email no es válido'),
+  codigo: z.string().trim().min(1, 'El código es obligatorio'),
+  telefono: telefonoSchema,
+  categoriaId: z.string().uuid('La categoría no es un UUID válido'),
+  estado: z.enum(['activo', 'inactivo']).default('activo'),
+});
 
 export const actualizarAlumnoSchema = crearAlumnoSchema.partial();
+
+export const cambiarEstadoAlumnoSchema = z.object({
+  estado: z.enum(['activo', 'inactivo'], {
+    required_error: 'El estado es obligatorio',
+    invalid_type_error: 'El estado debe ser activo o inactivo',
+  }),
+});
+
+export const actualizarPerfilAlumnoSchema = z.object({
+  nombres: z.string().trim().min(1, 'Los nombres son obligatorios').optional(),
+  apellidos: z.string().trim().min(1, 'Los apellidos son obligatorios').optional(),
+  email: z.string().trim().email('El email no es válido').optional(),
+  telefono: z.string().regex(/^\d{9}$/, 'El teléfono debe tener exactamente 9 dígitos').optional(),
+});

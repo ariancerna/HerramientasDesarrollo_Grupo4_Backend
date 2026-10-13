@@ -18,7 +18,7 @@ test('PATCH edits all supported fields and returns the saved camelCase DTO', asy
   assert.equal(write.params.get('id'), 'eq.' + ids.horario);
   assert.equal(write.params.get('categoria_id'), 'eq.' + ids.categoria);
   assert.deepEqual(write.body, {
-    dia: 'miércoles', hora_inicio: '09:30:00', hora_fin: '11:45:00',
+    dia: 'Miércoles', hora_inicio: '09:30:00', hora_fin: '11:45:00',
     cancha: 'Cancha 2', estado: 'cancelado',
   });
   assert.equal(fixture.rows.horarios[1].estado, 'activo');

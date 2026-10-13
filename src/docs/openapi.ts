@@ -15,14 +15,12 @@ function construirOperacion(endpoint: EndpointDoc, tag: string) {
   const { params } = convertirRuta(endpoint.ruta);
   const metodosConBody = ['POST', 'PUT', 'PATCH'];
   const prefijoEstado = endpoint.implementado ? '' : '⏳ [PENDIENTE] ';
-  const parameters = new Map<string, OpenApiParameter>();
+  const parametros = new Map<string, OpenApiParameter>();
   for (const nombre of params) {
-    parameters.set('path:' + nombre, {
-      name: nombre, in: 'path', required: true, schema: { type: 'string' },
-    });
+    parametros.set(`path:${nombre}`, { name: nombre, in: 'path', required: true, schema: { type: 'string' } });
   }
-  for (const parameter of endpoint.parameters ?? []) {
-    parameters.set(parameter.in + ':' + parameter.name, parameter);
+  for (const parametro of [...(endpoint.parameters ?? []), ...(endpoint.queryParams ?? [])]) {
+    parametros.set(`${parametro.in}:${parametro.name}`, parametro);
   }
 
   const operacion: Record<string, unknown> = {
@@ -32,20 +30,20 @@ function construirOperacion(endpoint: EndpointDoc, tag: string) {
       endpoint.implementado ? '' : '\n\n⚠️ Este endpoint todavía no está implementado en el backend.'
     }`,
     operationId: endpoint.id,
-    parameters: [...parameters.values()],
+    parameters: [...parametros.values()],
     responses: {
-      ...(endpoint.responses ?? { '200': { description: 'OK' } }),
       '400': { description: 'Solicitud inválida' },
       '401': { description: 'No autenticado' },
       '403': { description: 'Sin permiso para este recurso' },
       '404': { description: 'No encontrado' },
+      ...(endpoint.responses ?? { '200': { description: 'OK' } }),
     },
   };
 
-  if (metodosConBody.includes(endpoint.metodo)) {
-    // TODO: reemplazar este schema genérico por el real de cada módulo
-    // (usando el *.schema.ts de Zod correspondiente) cuando se programe.
-    operacion.requestBody = endpoint.requestBody ?? {
+  if (metodosConBody.includes(endpoint.metodo) && endpoint.requestBody) {
+    operacion.requestBody = endpoint.requestBody;
+  } else if (metodosConBody.includes(endpoint.metodo)) {
+    operacion.requestBody = {
       required: false,
       content: {
         'application/json': {

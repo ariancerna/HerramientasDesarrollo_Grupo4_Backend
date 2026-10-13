@@ -2,8 +2,8 @@
 
 Base URL: http://localhost:4000/api/v1
 
-All routes require an Authorization Bearer header (Supabase access token) and an
-active ADM account in usuarios. Both identifiers must be UUIDs.
+All routes require an Authorization Bearer header (Supabase access token).
+All active roles can read; only ADM can write. Both identifiers must be UUIDs.
 Writes are scoped by **both** category and schedule identifiers.
 
 ## HOR-03 / SCRUM-99 — DELETE
@@ -69,8 +69,14 @@ Response **200**:
     }
 
 Response times omit zero seconds but retain significant seconds, e.g. 18:00:30.
-This module does not add creation/listing endpoints, migrations, overlap rules
-or new restrictions on the number of schedules per day.
+The integration retains GET/POST collection routes and GET/PUT detail routes
+from dev, alongside PATCH and DELETE. PUT remains a compatibility alias.
+POST uses HH:mm and a 100-character court limit; partial updates retain the
+previous PATCH contract. At most one schedule per category/day is allowed, even
+if cancelled; duplicate days return 409. Apply the existing
+*_horarios_dia_unico.sql migration before live use. It refuses duplicates without
+deleting data. Swagger operation IDs distinguish CREATE and the PUT alias from
+HOR-03 DELETE and HOR-04 PATCH in SCRUM-99/100.
 
 ## Errors
 

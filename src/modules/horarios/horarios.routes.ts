@@ -1,18 +1,15 @@
 import { Router } from 'express';
-import { requireAuth } from '../../middlewares/auth.middleware';
 import { requireRole } from '../../middlewares/role.middleware';
-import { validateBody, validateParams } from '../../middlewares/validate.middleware';
-import { actualizarHorarioSchema, horarioParamsSchema } from './horarios.schema';
+import { validateBody, validateParams, validateQuery } from '../../middlewares/validate.middleware';
+import { categoriaParamsSchema } from '../categorias/categorias.schema';
+import { crearHorarioSchema, actualizarHorarioSchema, horarioParamsSchema, horariosQuerySchema } from './horarios.schema';
 import * as controller from './horarios.controller';
-
+// El router padre aplica requireAuth antes de montar este router.
 const router = Router({ mergeParams: true });
-
-// HOR-03 / SCRUM-99: eliminación física del horario de la categoría indicada.
-router.delete('/:horarioId', requireAuth, requireRole('ADM'),
-  validateParams(horarioParamsSchema), controller.eliminar);
-
-// HOR-04 / SCRUM-100: edición parcial de campos y estado.
-router.patch('/:horarioId', requireAuth, requireRole('ADM'),
-  validateParams(horarioParamsSchema), validateBody(actualizarHorarioSchema), controller.actualizar);
-
+router.get('/', validateParams(categoriaParamsSchema), validateQuery(horariosQuerySchema), controller.list);
+router.get('/:horarioId', validateParams(horarioParamsSchema), controller.getById);
+router.post('/', requireRole('ADM'), validateParams(categoriaParamsSchema), validateBody(crearHorarioSchema), controller.create);
+router.put('/:horarioId', requireRole('ADM'), validateParams(horarioParamsSchema), validateBody(actualizarHorarioSchema), controller.update);
+router.patch('/:horarioId', requireRole('ADM'), validateParams(horarioParamsSchema), validateBody(actualizarHorarioSchema), controller.update);
+router.delete('/:horarioId', requireRole('ADM'), validateParams(horarioParamsSchema), controller.remove);
 export default router;

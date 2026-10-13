@@ -4,3 +4,8 @@ dist/
 .env.local
 *.log
 .DS_Store
+
+supabase/.temp/
+
+# Referencia local para la distribucion de tareas del equipo.
+/image.png
