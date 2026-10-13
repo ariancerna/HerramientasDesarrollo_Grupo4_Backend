@@ -10,7 +10,8 @@ export async function findAll(filters: Record<string, unknown> = {}) {
 }
 
 export async function findById(id: string) {
-  const { data, error } = await supabaseAdmin.from(TABLE).select('*').eq('id', id).single();
+  const { data, error } = await supabaseAdmin.from(TABLE)
+    .select('id,nombre,direccion,created_at').eq('id', id).maybeSingle();
   if (error) throw error;
   return data;
 }

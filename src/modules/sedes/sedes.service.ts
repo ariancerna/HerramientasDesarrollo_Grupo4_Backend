@@ -6,7 +6,9 @@ export async function list(filters: Record<string, unknown>) {
 }
 
 export async function getById(id: string) {
-  return repository.findById(id);
+  const sede = await repository.findById(id);
+  if (!sede) throw ApiError.notFound('Sede no encontrada');
+  return sede;
 }
 
 export async function create(payload: Record<string, unknown>) {
