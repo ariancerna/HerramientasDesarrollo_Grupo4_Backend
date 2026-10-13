@@ -3,21 +3,26 @@ import { supabaseAdmin } from '../../config/supabase';
 const TABLE = 'usuarios';
 
 export async function obtenerAlumnoPorId(alumnoId: string) {
-  const { data } = await supabaseAdmin.from('alumnos').select('*').eq('id', alumnoId).maybeSingle();
+  const { data, error } = await supabaseAdmin.from('alumnos')
+    .select('id,nombres,apellidos,email').eq('id', alumnoId).maybeSingle();
+  if (error) throw error;
   return data;
 }
 
 export async function alumnoTieneUsuario(alumnoId: string) {
-  const { data } = await supabaseAdmin
+  const { data, error } = await supabaseAdmin
     .from(TABLE)
     .select('id')
     .eq('estudiante_id', alumnoId)
     .maybeSingle();
+  if (error) throw error;
   return Boolean(data);
 }
 
 export async function usuarioExiste(usuario: string) {
-  const { data } = await supabaseAdmin.from(TABLE).select('id').eq('usuario', usuario).maybeSingle();
+  const { data, error } = await supabaseAdmin.from(TABLE).select('id')
+    .ilike('usuario', usuario.replace(/[\\%_]/g, '\\$&')).maybeSingle();
+  if (error) throw error;
   return Boolean(data);
 }
 
@@ -37,14 +42,17 @@ export async function insertarUsuario(usuario: {
   nombre: string;
   estudianteId: string;
 }) {
-  const { error } = await supabaseAdmin.from(TABLE).insert({
-    id: usuario.id,
-    usuario: usuario.usuario,
-    email: usuario.email,
-    nombre: usuario.nombre,
-    rol: 'ALU',
-    estudiante_id: usuario.estudianteId,
+  const { error } = await supabaseAdmin.rpc('crear_cuenta_alumno', {
+    p_auth_id: usuario.id,
+    p_alumno_id: usuario.estudianteId,
+    p_usuario: usuario.usuario,
+    p_email: usuario.email,
   });
+  if (error) throw error;
+}
+
+export async function eliminarCuentaAuth(id: string) {
+  const { error } = await supabaseAdmin.auth.admin.deleteUser(id);
   if (error) throw error;
 }
 
