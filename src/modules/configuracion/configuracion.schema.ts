@@ -1,4 +1,5 @@
 import { z } from 'zod';
+export const miConfigQuerySchema = z.object({}).strict();
 
 export const miConfigSchema = z.object({
   tema: z.enum(['claro', 'oscuro', 'sistema']).optional(),

@@ -1,8 +1,15 @@
 import { supabaseAdmin } from '../../config/supabase';
+import type { ConfiguracionUsuarioRow, MiConfiguracion } from './configuracion.types';
 
-export async function obtenerMiConfig(usuarioId: string) {
-  const { data } = await supabaseAdmin.from('configuraciones_usuario').select('*').eq('usuario_id', usuarioId).maybeSingle();
-  return data ?? { tema: 'sistema', notificacionesSilenciadas: false };
+export function presentarMiConfig(row: ConfiguracionUsuarioRow): MiConfiguracion {
+  return { tema: row.tema, notificacionesSilenciadas: row.notificaciones_silenciadas };
+}
+
+export async function obtenerMiConfig(usuarioId: string): Promise<MiConfiguracion> {
+  const { data, error } = await supabaseAdmin.from('configuraciones_usuario')
+    .select('tema,notificaciones_silenciadas').eq('usuario_id', usuarioId).maybeSingle();
+  if (error) throw error;
+  return data ? presentarMiConfig(data) : { tema: 'sistema', notificacionesSilenciadas: false };
 }
 
 export async function actualizarMiConfig(usuarioId: string, cambios: Record<string, unknown>) {
