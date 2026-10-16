@@ -47,14 +47,22 @@ export async function cambiarPasswordPropia(email: string, id: string, actual: s
  * email → hay que resolver usuario -> email antes de llamar signInWithPassword.
  * (Ver decisión pendiente #1 en docs/ENDPOINTS.md)
  */
-export async function findEmailByUsuario(usuario: string): Promise<string | null> {
+export async function findCuentaByUsuario(usuario: string) {
+  // Los usuarios son únicos sin distinguir mayúsculas (índice usuarios_nombre_sin_mayusculas).
   const { data, error } = await supabaseAdmin
     .from('usuarios')
-    .select('email')
-    .eq('usuario', usuario)
-    .single();
-  if (error) return null;
-  return data?.email ?? null;
+    .select('id,usuario,email,nombre,rol,estudiante_id,activo')
+    .ilike('usuario', usuario.trim().replace(/[\\%_]/g, '\\$&'))
+    .limit(1)
+    .maybeSingle();
+  if (error) throw error;
+  return data as { id: string; usuario: string; email: string; nombre: string; rol: string;
+    estudiante_id: string | null; activo: boolean } | null;
+}
+
+export async function revocarSesion(accessToken: string) {
+  const { error } = await supabaseAdmin.auth.admin.signOut(accessToken);
+  if (error && error.status !== 401 && error.status !== 404) throw error;
 }
 
 export async function signInWithPassword(email: string, password: string) {
@@ -93,22 +101,25 @@ export async function guardarCodigoRecuperacion(correo: string, codigo: string) 
   if (error) throw error;
 }
 
-export async function obtenerCodigoVigente(correo: string, codigo: string) {
-  const { data } = await supabaseAdmin
-    .from('codigos_recuperacion')
-    .select('*')
-    .eq('correo', correo)
-    .eq('codigo', codigo)
-    .eq('usado', false)
-    .gte('expira_en', new Date().toISOString())
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return data;
+export async function codigoReciente(correo: string, segundos: number) {
+  const { data, error } = await supabaseAdmin.from('codigos_recuperacion').select('id')
+    .eq('correo', correo).gte('created_at', new Date(Date.now() - segundos * 1000).toISOString()).limit(1);
+  if (error) throw error;
+  return (data ?? []).length > 0;
 }
 
-export async function marcarCodigoUsado(id: string) {
-  await supabaseAdmin.from('codigos_recuperacion').update({ usado: true }).eq('id', id);
+/** AUTH-08 atómico en SQL (verificar_codigo_recuperacion): 'ok' | 'invalido' | 'bloqueado'. */
+export async function verificarCodigo(correo: string, codigo: string): Promise<string> {
+  const { data, error } = await supabaseAdmin.rpc('verificar_codigo_recuperacion', { p_correo: correo, p_codigo: codigo });
+  if (error) throw error;
+  return data as string;
+}
+
+/** Un código nuevo anula los anteriores: así el límite de intentos no se multiplica. */
+export async function invalidarCodigos(correo: string) {
+  const { error } = await supabaseAdmin.from('codigos_recuperacion').update({ usado: true })
+    .eq('correo', correo).eq('usado', false);
+  if (error) throw error;
 }
 
 export async function guardarResetToken(correo: string): Promise<string> {

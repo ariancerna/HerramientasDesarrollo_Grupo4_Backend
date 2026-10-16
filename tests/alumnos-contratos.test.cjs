@@ -52,8 +52,9 @@ test('respuesta HTTP del listado coincide con la envoltura documentada', async (
   const base = await servidor(t);
   const response = await fetch(`${base}/alumnos`, { headers: { Authorization: 'Bearer admin' } });
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { data: list });
+  // Convención de la lista de endpoints: { data: [], meta: { page, limit, total } }.
+  assert.deepEqual(await response.json(), { data: [], meta: { page: 1, limit: 20, total: 0 } });
   const documented = buildOpenApiSpec().paths['/alumnos'].get.responses['200'].content['application/json'].schema;
-  assert.equal(documented.properties.data.type, 'object');
-  assert.equal(documented.properties.data.properties.data.type, 'array');
+  assert.equal(documented.properties.data.type, 'array');
+  assert.equal(documented.properties.meta.type, 'object');
 });

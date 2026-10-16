@@ -47,3 +47,8 @@ export async function asignarCategorias(req: Request, res: Response, next: NextF
   try { ok(res, await service.asignarCategorias(req.params.id, req.body.categoriaIds)); }
   catch (error) { next(error); }
 }
+
+export async function misCategorias(req: Request, res: Response, next: NextFunction) {
+  try { ok(res, await service.misCategorias(req.user!.profesorId ?? req.user!.id)); }
+  catch (error) { next(error); }
+}

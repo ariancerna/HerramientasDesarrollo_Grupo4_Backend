@@ -30,13 +30,29 @@ export async function create(body: NuevoProfesor) {
   }
 }
 export async function update(id: string, body: CambiosProfesor) {
-  if (body.usuario !== undefined) {
-    await getById(id);
-    if (await repository.usuarioExiste(body.usuario, id)) {
-      throw ApiError.conflict('El usuario ya esta registrado');
-    }
+  const { password, categoriaIds, ...datos } = body;
+  if (body.usuario !== undefined || password !== undefined) await getById(id);
+  if (body.usuario !== undefined && await repository.usuarioExiste(body.usuario, id)) {
+    throw ApiError.conflict('El usuario ya esta registrado');
   }
-  try { return await repository.update(id, body); } catch (error) { return databaseError(error); }
+  if (datos.sedeId !== undefined && !await repository.sedeExiste(datos.sedeId)) {
+    throw ApiError.badRequest('La sede no existe');
+  }
+  let profesor;
+  try {
+    if (Object.keys(datos).length > 0) profesor = await repository.update(id, datos);
+    if (categoriaIds !== undefined) profesor = await repository.asignarCategorias(id, categoriaIds);
+  } catch (error) { return databaseError(error); }
+  if (password !== undefined) {
+    try { await repository.actualizarPassword(id, password); }
+    catch { throw ApiError.badRequest('No se pudo actualizar la contraseña del profesor'); }
+  }
+  return profesor ?? getById(id);
+}
+
+/** PRF-06 — categorías asignadas al profesor logueado. */
+export async function misCategorias(profesorId: string) {
+  return repository.categoriasDe(profesorId);
 }
 export async function asignarCategorias(id: string, ids: string[]) {
   try { return await repository.asignarCategorias(id, ids); } catch (error) { return databaseError(error); }

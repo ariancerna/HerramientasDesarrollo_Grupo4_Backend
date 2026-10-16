@@ -13,7 +13,7 @@ export async function crearCuenta(req: Request, res: Response, next: NextFunctio
 
 export async function actualizarEstado(req: Request, res: Response, next: NextFunction) {
   try {
-    const data = await service.actualizarEstado(req.params.id, req.body.activo);
+    const data = await service.actualizarEstado(req.params.id, req.body.activo, req.user?.id);
     ok(res, data);
   } catch (err) {
     next(err);

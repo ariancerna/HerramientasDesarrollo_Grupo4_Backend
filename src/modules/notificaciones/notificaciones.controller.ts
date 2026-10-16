@@ -20,6 +20,11 @@ export async function markRead(req: Request, res: Response, next: NextFunction) 
   catch (err) { next(err); }
 }
 
+export async function markAllRead(req: Request, res: Response, next: NextFunction) {
+  try { ok(res, await service.markAllRead(req.user!.id)); }
+  catch (err) { next(err); }
+}
+
 export async function remove(req: Request, res: Response, next: NextFunction) {
   try { await service.remove(req.user!.id, req.params.id); res.status(204).send(); }
   catch (err) { next(err); }

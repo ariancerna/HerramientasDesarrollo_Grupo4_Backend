@@ -47,8 +47,14 @@ export async function crearCuentaParaAlumno(alumnoId: string, usuario: string, p
   return { mensaje: 'Cuenta creada correctamente para el alumno.' };
 }
 
-export async function actualizarEstado(usuarioId: string, activo: boolean) {
-  return repository.actualizarEstado(usuarioId, activo);
+export async function actualizarEstado(usuarioId: string, activo: boolean, solicitanteId?: string) {
+  if (usuarioId === solicitanteId && !activo) {
+    throw ApiError.badRequest('No puedes bloquear tu propia cuenta.');
+  }
+  const usuario = await repository.actualizarEstado(usuarioId, activo);
+  if (!usuario) throw ApiError.notFound('No existe un usuario con ese id.');
+  const { id, usuario: nombreUsuario, nombre, rol, activo: estado } = usuario;
+  return { id, usuario: nombreUsuario, nombre, rol, activo: estado };
 }
 
 /** USR-03 — el admin restablece la contraseña de cualquier usuario (alumno o profesor). */

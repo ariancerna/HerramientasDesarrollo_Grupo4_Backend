@@ -7,13 +7,14 @@ import authRoutes from '../modules/auth/auth.routes';
 import usuariosRoutes, { alumnoCuentaRoutes } from '../modules/usuarios/usuarios.routes';
 import sedesRoutes from '../modules/sedes/sedes.routes';
 import categoriasRoutes from '../modules/categorias/categorias.routes';
-import profesoresRoutes from '../modules/profesores/profesores.routes';
-import alumnosRoutes from '../modules/alumnos/alumnos.routes';
-import asistenciasRoutes from '../modules/asistencias/asistencias.routes'; // <-- TU ÉPICA (ASI)
+import { meHorariosRoutes } from '../modules/horarios/horarios.routes';
+import profesoresRoutes, { meCategoriasRoutes } from '../modules/profesores/profesores.routes';
+import alumnosRoutes, { mePerfilRoutes } from '../modules/alumnos/alumnos.routes';
+import asistenciasRoutes, { meAsistenciasRoutes } from '../modules/asistencias/asistencias.routes';
 import pagosRoutes, { mePagosRoutes } from '../modules/pagos/pagos.routes';
-import calendarioRoutes from '../modules/calendario/calendario.routes';     // <-- TU ÉPICA (CAL)
+import calendarioRoutes, { eventosRoutes } from '../modules/calendario/calendario.routes';
 import evaluacionesRoutes from '../modules/evaluaciones/evaluaciones.routes';
-import anunciosRoutes from '../modules/anuncios/anuncios.routes';
+import anunciosRoutes, { meAnunciosRoutes } from '../modules/anuncios/anuncios.routes';
 import notificacionesRoutes from '../modules/notificaciones/notificaciones.routes';
 import reportesRoutes from '../modules/reportes/reportes.routes';
 import dashboardRoutes from '../modules/dashboard/dashboard.routes';
@@ -35,23 +36,31 @@ router.use('/alumnos', alumnoCuentaRoutes);
 // Épica: SED — Sedes
 router.use('/sedes', sedesRoutes);
 
-// Épica: CAT — Categorías
+// Épica: CAT — Categorías (HOR-01..04 cuelgan de /categorias/:id/horarios)
 router.use('/categorias', categoriasRoutes);
+// HOR-05 — Mi horario (PROF)
+router.use('/me/horarios', meHorariosRoutes);
 
 // Épica: PRF — Profesores
 router.use('/profesores', profesoresRoutes);
+// PRF-06 — Mis categorías (PROF)
+router.use('/me/categorias', meCategoriasRoutes);
 
 // Épica: ALU — Alumnos y perfil
 router.use('/alumnos', alumnosRoutes);
+// ALU-08..11 — Mi perfil (ALU)
+router.use('/me/perfil', mePerfilRoutes);
 
-// Épica: ASI — Asistencia (AARON)
+// Épica: ASI — Asistencia
 router.use('/asistencias', asistenciasRoutes);
+router.use('/me/asistencias', meAsistenciasRoutes);
 
 // Épica: PAG — Pagos / mensualidades
 router.use('/pagos', pagosRoutes);
 router.use('/me/pagos', mePagosRoutes);
 
-// Épica: CAL — Calendario y eventos (AARON)
+// Épica: CAL — Calendario y eventos
+router.use('/eventos', eventosRoutes);
 router.use('/calendario', calendarioRoutes);
 
 // Épica: EVA — Evaluaciones
@@ -59,6 +68,7 @@ router.use('/evaluaciones', evaluacionesRoutes);
 
 // Épica: ANU — Anuncios
 router.use('/anuncios', anunciosRoutes);
+router.use('/me/anuncios', meAnunciosRoutes);
 
 // Épica: NOT — Notificaciones
 router.use('/', notificacionesRoutes);

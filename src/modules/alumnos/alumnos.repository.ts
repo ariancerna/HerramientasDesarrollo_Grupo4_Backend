@@ -3,6 +3,26 @@ import { ApiError } from '../../lib/errors/api-error';
 
 const TABLE = 'alumnos';
 
+/** Contrato del front (Student): camelCase y categoría por id + nombre (regla #7). */
+export function presentAlumno(row: Record<string, any> | null) {
+  if (!row) return row;
+  const categoria = Array.isArray(row.categorias) ? row.categorias[0] : row.categorias;
+  return {
+    id: row.id,
+    codigo: row.codigo ?? null,
+    dni: row.dni,
+    nombres: row.nombres,
+    apellidos: row.apellidos,
+    email: row.email ?? null,
+    telefono: row.telefono ?? null,
+    categoriaId: row.categoria_id ?? null,
+    categoria: typeof row.categoria === 'string' ? row.categoria : categoria?.nombre ?? null,
+    estado: row.estado,
+    fotoUrl: row.foto_url ?? null,
+    ...(row.created_at !== undefined ? { createdAt: row.created_at } : {}),
+  };
+}
+
 export async function findCategoriaIdsByProfesor(profesorId?: string) {
   if (!profesorId) return [];
 
@@ -115,6 +135,7 @@ export async function findProfileByAlumnoId(alumnoId: string) {
     email: data.email,
     telefono: data.telefono,
     estado: data.estado,
+    categoria_id: data.categoria_id,
     categoria: categoria?.nombre ?? null,
     foto_url: data.foto_url,
   };
@@ -129,6 +150,18 @@ export async function findByCodigo(codigo: string) {
 
   if (error) throw error;
   return data ?? null;
+}
+
+/** Decisión #4: código autogenerado GC-AAAA-NNN (siguiente correlativo del año). */
+export async function siguienteCodigo(anio: number) {
+  const prefijo = `GC-${anio}-`;
+  const { data, error } = await supabaseAdmin.from(TABLE).select('codigo').like('codigo', `${prefijo}%`);
+  if (error) throw error;
+  const maximo = (data ?? []).reduce((max, fila) => {
+    const numero = Number(String(fila.codigo).slice(prefijo.length));
+    return Number.isInteger(numero) && numero > max ? numero : max;
+  }, 0);
+  return `${prefijo}${String(maximo + 1).padStart(3, '0')}`;
 }
 
 export async function findByEmail(email: string) {

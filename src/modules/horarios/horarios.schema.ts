@@ -21,5 +21,11 @@ export const actualizarHorarioSchema = fields.partial()
   .refine((body) => !body.horaInicio || !body.horaFin || body.horaFin > body.horaInicio, 'La hora final debe ser posterior');
 export const horarioParamsSchema = z.object({ id: z.string().uuid(), horarioId: z.string().uuid() });
 export const horariosQuerySchema = z.object({ estado: z.enum(['activo', 'cancelado']).optional() }).strict();
+export const estadoHorarioSchema = z.object({ estado: z.enum(['activo', 'cancelado']) }).strict();
+const sinTildes = (texto: string) => texto.normalize('NFD').replace(/[̀-ͯ]/g, '');
+export const misHorariosQuerySchema = z.object({
+  dia: z.string().trim().toLowerCase()
+    .refine((dia) => dias.some((valido) => sinTildes(valido) === sinTildes(dia)), 'Día inválido').optional(),
+}).strict();
 export type NuevoHorario = z.infer<typeof crearHorarioSchema>;
 export type CambiosHorario = z.infer<typeof actualizarHorarioSchema>;

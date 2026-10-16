@@ -32,6 +32,11 @@ export const changePasswordSchema = z.object({
   message: 'La nueva contraseña debe ser distinta de la actual', path: ['passwordNueva'],
 });
 
+export const usuarioDisponibleSchema = z.object({
+  usuario: z.string().trim().min(1, 'Indica el usuario').max(50),
+  excluirId: z.string().uuid().optional(),
+}).strict();
+
 export const refreshSchema = z.object({
   refreshToken: z.string().min(1),
 });

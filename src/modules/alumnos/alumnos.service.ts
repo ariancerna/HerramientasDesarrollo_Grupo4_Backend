@@ -171,7 +171,9 @@ export async function create(currentUser: AuthUser | undefined, payload: Record<
   }
 
   const dni = typeof payload.dni === 'string' ? payload.dni : '';
-  const codigo = typeof payload.codigo === 'string' ? payload.codigo.trim() : '';
+  const codigo = typeof payload.codigo === 'string' && payload.codigo.trim()
+    ? payload.codigo.trim()
+    : await repository.siguienteCodigo(new Date().getFullYear());
   const email = typeof payload.email === 'string' ? payload.email.trim() : '';
   const telefono = typeof payload.telefono === 'string' ? payload.telefono : undefined;
   const categoriaId = typeof payload.categoriaId === 'string' ? payload.categoriaId : '';
@@ -208,16 +210,24 @@ export async function create(currentUser: AuthUser | undefined, payload: Record<
   if (emailExists) throw ApiError.conflict('Email ya registrado');
   if (!categoriaExists) throw ApiError.badRequest('La categoría especificada no existe');
 
-  return repository.create({
-    dni,
-    nombres: payload.nombres,
-    apellidos: payload.apellidos,
-    codigo,
-    email,
-    telefono: telefono ?? null,
-    categoria_id: categoriaId,
-    estado: payload.estado ?? 'activo',
-  });
+  try {
+    return await repository.create({
+      dni,
+      nombres: payload.nombres,
+      apellidos: payload.apellidos,
+      codigo,
+      email,
+      telefono: telefono ?? null,
+      categoria_id: categoriaId,
+      estado: payload.estado ?? 'activo',
+    });
+  } catch (error: unknown) {
+    // Dos altas simultáneas pueden pasar las comprobaciones previas: la BD es la última palabra.
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23505') {
+      throw ApiError.conflict('DNI, código o email ya registrado');
+    }
+    throw error;
+  }
 }
 
 export async function update(currentUser: AuthUser | undefined, id: string, payload: Record<string, unknown>) {

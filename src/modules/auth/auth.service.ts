@@ -1,19 +1,35 @@
+import { randomInt } from 'node:crypto';
+import { env } from '../../config/env';
 import { ApiError } from '../../lib/errors/api-error';
 import * as repository from './auth.repository';
 import { crearCuentaParaAlumno } from '../usuarios/usuarios.service';
 
 export async function login(usuario: string, password: string) {
-  const email = await repository.findEmailByUsuario(usuario);
-  if (!email) throw ApiError.unauthorized('Usuario o contraseña incorrectos');
+  const cuenta = await repository.findCuentaByUsuario(usuario);
+  if (!cuenta) throw ApiError.unauthorized('Usuario o contraseña incorrectos');
 
-  const { data, error } = await repository.signInWithPassword(email, password);
+  const { data, error } = await repository.signInWithPassword(cuenta.email, password);
   if (error || !data.session) throw ApiError.unauthorized('Usuario o contraseña incorrectos');
+  if (!cuenta.activo) {
+    await repository.revocarSesion(data.session.access_token);
+    throw ApiError.forbidden('Tu cuenta está deshabilitada.');
+  }
 
+  // Forma del tipo Usuario del front: nunca el objeto interno de Supabase Auth.
   return {
     accessToken: data.session.access_token,
     refreshToken: data.session.refresh_token,
-    usuario: data.user,
+    expiresIn: data.session.expires_in,
+    usuario: {
+      id: cuenta.id, usuario: cuenta.usuario, nombre: cuenta.nombre, rol: cuenta.rol,
+      ...(cuenta.estudiante_id ? { estudianteId: cuenta.estudiante_id } : {}),
+    },
   };
+}
+
+/** AUTH-02 — revoca el refresh token de la sesión actual en Supabase. */
+export async function logout(accessToken: string) {
+  await repository.revocarSesion(accessToken);
 }
 
 export async function refresh(refreshToken: string) {
@@ -53,22 +69,31 @@ export async function register(dni: string, usuario: string, password: string) {
 
 /** AUTH-07 — Siempre responde igual exista o no el correo (no revela cuentas). */
 export async function forgotPassword(correo: string) {
-  const codigo = String(Math.floor(100000 + Math.random() * 900000));
+  const respuesta = { mensaje: 'Si el correo está registrado, te enviamos un código de verificación.' };
+  // Cooldown de 30 s por correo y solo para cuentas existentes (la respuesta es siempre la misma).
+  if (await repository.codigoReciente(correo, 30) || !await repository.obtenerUsuarioPorEmail(correo)) {
+    return respuesta;
+  }
+  const codigo = String(randomInt(100000, 1000000));
+  await repository.invalidarCodigos(correo);
   await repository.guardarCodigoRecuperacion(correo, codigo);
 
   // TODO: integrar un proveedor real de correo (Resend, SendGrid, etc.).
-  // Por ahora, para poder probar en desarrollo, lo mostramos en la consola del server.
-  console.log(`📧 [DEV] Código de recuperación para ${correo}: ${codigo}`);
+  // Mientras tanto se muestra en la consola, nunca en producción.
+  if (env.nodeEnv !== 'production') console.log(`📧 [DEV] Código de recuperación para ${correo}: ${codigo}`);
 
-  return { mensaje: 'Si el correo está registrado, te enviamos un código de verificación.' };
+  return respuesta;
 }
 
 /** AUTH-08 — Valida el código y entrega un resetToken de corta duración. */
 export async function verifyCode(correo: string, codigo: string) {
-  const fila = await repository.obtenerCodigoVigente(correo, codigo);
-  if (!fila) throw ApiError.badRequest('El código es inválido o ya expiró.');
+  // Máximo 5 intentos por código; al agotarlos hay que pedir uno nuevo (AUTH-07).
+  const resultado = await repository.verificarCodigo(correo, codigo);
+  if (resultado === 'bloqueado') {
+    throw new ApiError(429, 'TOO_MANY_REQUESTS', 'Demasiados intentos. Solicita un nuevo código.');
+  }
+  if (resultado !== 'ok') throw ApiError.badRequest('El código es inválido o ya expiró.');
 
-  await repository.marcarCodigoUsado(fila.id);
   const resetToken = await repository.guardarResetToken(correo);
   return { resetToken };
 }

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireAuth } from '../../middlewares/auth.middleware';
-import { validateBody } from '../../middlewares/validate.middleware';
+import { validateBody, validateQuery } from '../../middlewares/validate.middleware';
 import * as controller from './auth.controller';
 import {
   changePasswordSchema,
@@ -9,6 +9,7 @@ import {
   refreshSchema,
   registerSchema,
   resetPasswordSchema,
+  usuarioDisponibleSchema,
   verifyCodeSchema,
 } from './auth.schema';
 
@@ -23,7 +24,7 @@ router.post('/refresh', validateBody(refreshSchema), controller.refresh);
 // AUTH-04
 router.get('/me', requireAuth, controller.me);
 // AUTH-06
-router.get('/usuario-disponible', controller.usuarioDisponible);
+router.get('/usuario-disponible', validateQuery(usuarioDisponibleSchema), controller.usuarioDisponible);
 // AUTH-05 — registro por DNI (decisión #2: el alumno ya debe existir)
 router.post('/register', validateBody(registerSchema), controller.register);
 // AUTH-07

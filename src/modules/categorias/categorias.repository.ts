@@ -18,6 +18,12 @@ export async function findAll(filters: Record<string, unknown> = {}) {
   if (error) throw error;
   return (data ?? []).map(presentCategoria);
 }
+export async function findByIds(ids: string[]) {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabaseAdmin.from('categorias').select(SELECT).in('id', ids).order('nombre').order('id');
+  if (error) throw error;
+  return (data ?? []).map(presentCategoria);
+}
 export async function findById(id: string) {
   const { data, error } = await supabaseAdmin.from('categorias').select(SELECT).eq('id', id).maybeSingle();
   if (error) throw error;

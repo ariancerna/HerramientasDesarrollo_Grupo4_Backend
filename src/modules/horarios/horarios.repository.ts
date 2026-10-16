@@ -19,6 +19,14 @@ export async function findAll(categoriaId: string, filters: Record<string, unkno
   if (error) throw error;
   return presentHorarios(data ?? []);
 }
+/** Horarios de varias categorías con el nombre de cada una (HOR-05). */
+export async function findByCategorias(categoriaIds: string[]) {
+  if (categoriaIds.length === 0) return [];
+  const { data, error } = await supabaseAdmin.from(TABLE).select('*, categorias(nombre)').in('categoria_id', categoriaIds);
+  if (error) throw error;
+  const nombres = new Map((data ?? []).map((row: any) => [row.id, row.categorias?.nombre ?? null]));
+  return presentHorarios(data ?? []).map((horario) => ({ ...horario, categoria: nombres.get(horario.id) ?? null }));
+}
 export async function findById(categoriaId: string, id: string) {
   const { data, error } = await supabaseAdmin.from(TABLE).select('*').eq('categoria_id', categoriaId).eq('id', id).maybeSingle();
   if (error) throw error;

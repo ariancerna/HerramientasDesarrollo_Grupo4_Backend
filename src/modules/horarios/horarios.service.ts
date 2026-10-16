@@ -1,4 +1,6 @@
 import { ApiError } from '../../lib/errors/api-error';
+import type { AuthUser } from '../../types/express';
+import { findCategoriaIdsByProfesor } from '../alumnos/alumnos.repository';
 import { getById as categoriaById } from '../categorias/categorias.service';
 import * as repository from './horarios.repository';
 import { CambiosHorario, NuevoHorario } from './horarios.schema';
@@ -46,6 +48,14 @@ export async function update(categoriaId: string, id: string, body: CambiosHorar
   }
   if (!horario) throw ApiError.notFound('Horario no encontrado');
   return horario;
+}
+/** HOR-05 — horarios de las categorías del profesor, ordenados por día y hora. */
+export async function misHorarios(usuario: AuthUser, dia?: string) {
+  const categorias = await findCategoriaIdsByProfesor(usuario.profesorId ?? usuario.id);
+  const horarios = await repository.findByCategorias(categorias);
+  if (!dia) return horarios;
+  const sinTildes = (texto: string) => texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  return horarios.filter((horario) => sinTildes(horario.dia) === sinTildes(dia));
 }
 export async function remove(categoriaId: string, id: string) {
   await categoriaById(categoriaId);

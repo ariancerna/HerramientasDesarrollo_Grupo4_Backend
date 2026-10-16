@@ -26,14 +26,19 @@ export async function me(req: Request, res: Response) {
   ok(res, req.user);
 }
 
-export async function logout(_req: Request, res: Response) {
-  res.status(204).send();
+export async function logout(req: Request, res: Response, next: NextFunction) {
+  try {
+    await service.logout(req.headers.authorization!.replace('Bearer ', ''));
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
 }
 
 export async function usuarioDisponible(req: Request, res: Response, next: NextFunction) {
   try {
     const { usuario, excluirId } = req.query;
-    const result = await service.usuarioDisponible(String(usuario), excluirId as string | undefined);
+    const result = await service.usuarioDisponible(usuario as string, excluirId as string | undefined);
     ok(res, result);
   } catch (err) {
     next(err);

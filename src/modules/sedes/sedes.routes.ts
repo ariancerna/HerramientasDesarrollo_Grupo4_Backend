@@ -8,12 +8,10 @@ import { actualizarSedeSchema, crearSedeSchema, sedeParamsSchema } from './sedes
 const router = Router();
 
 // SED-01..05
-// TODO: ajustar roles exactos según docs/ENDPOINTS.md (algunos endpoints de este
-// módulo son de solo lectura para ALU/PROF, o tienen reglas de alcance por rol).
 router.get('/', requireAuth, controller.list);
 router.get('/:id', requireAuth, validateParams(sedeParamsSchema), controller.getById);
 router.post('/', requireAuth, requireRole('ADM'), validateBody(crearSedeSchema), controller.create);
-router.put('/:id', requireAuth, requireRole('ADM'), validateBody(actualizarSedeSchema), controller.update);
-router.delete('/:id', requireAuth, requireRole('ADM'), controller.remove);
+router.put('/:id', requireAuth, requireRole('ADM'), validateParams(sedeParamsSchema), validateBody(actualizarSedeSchema), controller.update);
+router.delete('/:id', requireAuth, requireRole('ADM'), validateParams(sedeParamsSchema), controller.remove);
 
 export default router;

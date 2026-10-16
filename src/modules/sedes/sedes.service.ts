@@ -16,18 +16,22 @@ export async function create(payload: Record<string, unknown>) {
 }
 
 export async function update(id: string, payload: Record<string, unknown>) {
-  return repository.update(id, payload);
+  const sede = await repository.update(id, payload);
+  if (!sede) throw ApiError.notFound('Sede no encontrada');
+  return sede;
 }
 
 /** SED-05 — si la sede tiene profesores asignados, la base de datos rechaza
  *  el borrado (foreign key); lo traducimos a un 409 claro para el front. */
 export async function remove(id: string) {
+  let eliminada: boolean;
   try {
-    await repository.remove(id);
+    eliminada = await repository.remove(id);
   } catch (err: any) {
     if (err?.code === '23503') {
       throw ApiError.conflict('No se puede eliminar: esta sede tiene profesores asignados.');
     }
     throw err;
   }
+  if (!eliminada) throw ApiError.notFound('Sede no encontrada');
 }

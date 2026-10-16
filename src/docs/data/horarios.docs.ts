@@ -107,3 +107,24 @@ registerDocs({
     },
   }],
 });
+
+registerDocs({
+  nombre: 'HOR — Horarios de entrenamiento',
+  endpoints: [{
+    id: 'HOR-04-ESTADO', metodo: 'PATCH', ruta: '/categorias/:id/horarios/:horarioId/estado',
+    descripcion: 'Cancela o reactiva una clase {estado: "activo" | "cancelado"} (decisión #6: solo ADM)',
+    acceso: 'ADM', implementado: true, parameters,
+    requestBody: { required: true, content: { 'application/json': { schema: {
+      type: 'object', additionalProperties: false, required: ['estado'],
+      properties: { estado: { type: 'string', enum: ['activo', 'cancelado'] } },
+    } } } },
+    responses: { '200': { description: 'Horario actualizado', content: { 'application/json': { schema: {
+      type: 'object', properties: { data: horarioResponse },
+    } } } } },
+  }, {
+    id: 'HOR-05', metodo: 'GET', ruta: '/me/horarios',
+    descripcion: 'Mi horario: horarios de mis categorías ordenados por día y hora (incluye nombre de categoría)',
+    acceso: 'PROF', implementado: true,
+    queryParams: [{ name: 'dia', in: 'query', schema: { type: 'string', enum: dias } }],
+  }],
+});

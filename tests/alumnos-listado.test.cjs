@@ -33,7 +33,7 @@ test('ALU-01 HTTP validates query and roles before executing a student listing',
   assert.equal(listing.mock.callCount(), 0);
   const response = await request('admin', '?page=2&limit=10&estado=activo&categoriaId=' + CATEGORIA_ID);
   assert.equal(response.status, 200);
-  assert.deepEqual(await response.json(), { data: { data: [], page: 2, limit: 10, total: 0, totalPages: 0 } });
+  assert.deepEqual(await response.json(), { data: [], meta: { page: 2, limit: 10, total: 0 } });
   const filters = listing.mock.calls[0].arguments[0];
   assert.equal(filters.categoriaId, CATEGORIA_ID);
   assert.equal(filters.from, 10);

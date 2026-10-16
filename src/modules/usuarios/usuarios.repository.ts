@@ -61,8 +61,8 @@ export async function actualizarEstado(usuarioId: string, activo: boolean) {
     .from(TABLE)
     .update({ activo })
     .eq('id', usuarioId)
-    .select()
-    .single();
+    .select('id,usuario,nombre,rol,activo')
+    .maybeSingle();
   if (error) throw error;
   return data;
 }

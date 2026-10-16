@@ -8,7 +8,11 @@ export const crearProfesorSchema = z.object({
   nombre, usuario, email: z.string().trim().toLowerCase().email(),
   password: z.string().min(6).max(72), sedeId: z.string().uuid(), categoriaIds: categoriaIds.default([]),
 }).strict();
-export const actualizarProfesorSchema = z.object({ nombre: nombre.optional(), usuario: usuario.optional(), sedeId: z.string().uuid().optional() }).strict()
+// PRF-04: password opcional y sincroniza categoriaIds[] (lista del PDF).
+export const actualizarProfesorSchema = z.object({
+  nombre: nombre.optional(), usuario: usuario.optional(), sedeId: z.string().uuid().optional(),
+  password: z.string().min(6).max(72).optional(), categoriaIds: categoriaIds.optional(),
+}).strict()
   .refine((body) => Object.keys(body).length > 0, 'Indica al menos un campo');
 export const asignarCategoriasSchema = z.object({ categoriaIds }).strict();
 export type NuevoProfesor = z.infer<typeof crearProfesorSchema>;

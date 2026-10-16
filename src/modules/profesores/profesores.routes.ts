@@ -13,3 +13,7 @@ router.put('/:id', validateParams(profesorParamsSchema), validateBody(actualizar
 router.delete('/:id', validateParams(profesorParamsSchema), controller.remove);
 router.put('/:id/categorias', validateParams(profesorParamsSchema), validateBody(asignarCategoriasSchema), controller.asignarCategorias);
 export default router;
+
+/** PRF-06 — se monta en /me/categorias. */
+export const meCategoriasRoutes = Router();
+meCategoriasRoutes.get('/', requireAuth, requireRole('PROF'), controller.misCategorias);

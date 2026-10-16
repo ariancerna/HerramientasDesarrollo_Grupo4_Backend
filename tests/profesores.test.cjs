@@ -15,7 +15,10 @@ test('PRF valida credenciales, sede, categorias unicas y campos editables', () =
     assert.equal(schema.crearProfesorSchema.safeParse({ ...body, ...changes }).success, false);
   }
   assert.equal(schema.actualizarProfesorSchema.safeParse({}).success, false);
-  assert.equal(schema.actualizarProfesorSchema.safeParse({ password: 'secreto' }).success, false);
+  // PRF-04: password opcional (mín. 6) y categoriaIds sincronizables.
+  assert.equal(schema.actualizarProfesorSchema.safeParse({ password: 'secreto' }).success, true);
+  assert.equal(schema.actualizarProfesorSchema.safeParse({ password: '123' }).success, false);
+  assert.equal(schema.actualizarProfesorSchema.safeParse({ categoriaIds: [id, id] }).success, false);
   assert.equal(schema.asignarCategoriasSchema.safeParse({ categoriaIds: [] }).success, true);
 });
 test('PRF revierte cuenta Auth si falla la transaccion de creacion', async (t) => {

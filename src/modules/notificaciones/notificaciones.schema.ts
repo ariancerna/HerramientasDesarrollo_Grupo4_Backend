@@ -6,7 +6,11 @@ export const listarNotificacionesSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
   leida: z.enum(['true', 'false']).optional(),
-}).strict();
+  // Nombre usado en la lista de endpoints (NOT-01): soloNoLeidas=true equivale a leida=false.
+  soloNoLeidas: z.enum(['true', 'false']).optional(),
+}).strict().transform(({ soloNoLeidas, ...filtro }) => (
+  soloNoLeidas === 'true' && filtro.leida === undefined ? { ...filtro, leida: 'false' as const } : filtro
+));
 
 export const crearNotificacionSchema = z.object({
   usuarioId: z.string().uuid(),
