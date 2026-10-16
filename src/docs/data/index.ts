@@ -26,6 +26,6 @@ import './profesores.docs';
 // import './calendario.docs';
 // import './evaluaciones.docs';
 // import './anuncios.docs';
-// import './notificaciones.docs';
-// import './reportes.docs';
+import './notificaciones.docs';
+import './reportes.docs';
 import './configuracion.docs';

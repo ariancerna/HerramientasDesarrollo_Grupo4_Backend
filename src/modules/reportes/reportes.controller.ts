@@ -16,7 +16,7 @@ export async function exportarAsistencia(req: Request, res: Response, next: Next
   try {
     const filtros = filtroAsistenciaSchema.parse(req.query);
     const csv = await service.exportarAsistenciaCsv(filtros);
-    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', 'attachment; filename="reporte-asistencia.csv"');
     res.send(csv);
   } catch (err) {

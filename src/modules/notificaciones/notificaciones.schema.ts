@@ -1,6 +1,22 @@
 import { z } from 'zod';
 
-// TODO: reemplazar por los campos reales de notificacion (ver docs/ENDPOINTS.md, módulo NOTIFICACIONES).
-export const crearNotificacionSchema = z.object({});
+export const notificacionParamsSchema = z.object({ id: z.string().uuid() }).strict();
 
-export const actualizarNotificacionSchema = crearNotificacionSchema.partial();
+export const listarNotificacionesSchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  leida: z.enum(['true', 'false']).optional(),
+}).strict();
+
+export const crearNotificacionSchema = z.object({
+  usuarioId: z.string().uuid(),
+  titulo: z.string().trim().min(1).max(200),
+  descripcion: z.string().trim().max(2000).nullable().optional(),
+  tipo: z.string().trim().min(1).max(50).nullable().optional(),
+  href: z.string().trim().max(500)
+    .refine((value) => value.startsWith('/') && !value.startsWith('//'), 'Usa una ruta interna del club')
+    .nullable().optional(),
+}).strict();
+
+export type FiltroNotificaciones = z.infer<typeof listarNotificacionesSchema>;
+export type CrearNotificacion = z.infer<typeof crearNotificacionSchema>;

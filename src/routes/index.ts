@@ -61,7 +61,7 @@ router.use('/evaluaciones', evaluacionesRoutes);
 router.use('/anuncios', anunciosRoutes);
 
 // Épica: NOT — Notificaciones
-router.use('/notificaciones', notificacionesRoutes);
+router.use('/', notificacionesRoutes);
 
 // Épica: REP — Reportes
 router.use('/reportes', reportesRoutes);

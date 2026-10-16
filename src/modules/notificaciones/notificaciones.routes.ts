@@ -1,19 +1,16 @@
 import { Router } from 'express';
 import { requireAuth } from '../../middlewares/auth.middleware';
 import { requireRole } from '../../middlewares/role.middleware';
-import { validateBody } from '../../middlewares/validate.middleware';
+import { validateBody, validateParams, validateQuery } from '../../middlewares/validate.middleware';
 import * as controller from './notificaciones.controller';
-import { actualizarNotificacionSchema, crearNotificacionSchema } from './notificaciones.schema';
+import { crearNotificacionSchema, listarNotificacionesSchema,
+  notificacionParamsSchema } from './notificaciones.schema';
 
 const router = Router();
-
-// NOT-01..04 (todas bajo /me/notificaciones)
-// TODO: ajustar roles exactos según docs/ENDPOINTS.md (algunos endpoints de este
-// módulo son de solo lectura para ALU/PROF, o tienen reglas de alcance por rol).
-router.get('/', requireAuth, controller.list);
-router.get('/:id', requireAuth, controller.getById);
-router.post('/', requireAuth, requireRole('ADM'), validateBody(crearNotificacionSchema), controller.create);
-router.put('/:id', requireAuth, requireRole('ADM'), validateBody(actualizarNotificacionSchema), controller.update);
-router.delete('/:id', requireAuth, requireRole('ADM'), controller.remove);
+router.get('/me/notificaciones', requireAuth, validateQuery(listarNotificacionesSchema), controller.list);
+router.get('/me/notificaciones/:id', requireAuth, validateParams(notificacionParamsSchema), controller.getById);
+router.patch('/me/notificaciones/:id/leida', requireAuth, validateParams(notificacionParamsSchema), controller.markRead);
+router.delete('/me/notificaciones/:id', requireAuth, validateParams(notificacionParamsSchema), controller.remove);
+router.post('/notificaciones', requireAuth, requireRole('ADM'), validateBody(crearNotificacionSchema), controller.create);
 
 export default router;
