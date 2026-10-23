@@ -141,3 +141,21 @@ docs/              Contratos y documentación de módulos
 Las funcionalidades se trabajan en ramas `feature/<funcionalidad>` y se integran en `dev` después de validar la compilación y las pruebas. Los commits agrupan cambios concretos de implementación, correcciones, pruebas o documentación.
 
 Los nuevos endpoints se registran en `src/docs/data/` y se incluyen en `src/docs/data/index.ts` para incorporarlos a Swagger. Los cambios del modelo de datos se entregan como archivos SQL versionados.
+
+## Credenciales
+
+USUARIO : admin
+
+CONTRASEÑA: admin123
+
+
+
+USUARIO : alumno
+
+CONTRASEÑA : alumno123
+
+
+
+USUARIO : profesor
+
+CONTRASEÑA : profesor123
