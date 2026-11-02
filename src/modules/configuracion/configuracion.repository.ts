@@ -28,11 +28,15 @@ export async function actualizarMiConfig(usuarioId: string, cambios: CambiosMiCo
 
 export async function obtenerConfigClub() {
   const { data } = await supabaseAdmin.from('configuracion_club').select('*').single();
-  return data ?? { montoMensualidad: 180, diaVencimiento: 10 };
+  return data ?? { id: 1, monto_mensualidad: 180, dia_vencimiento: 10 };
 }
 
-export async function actualizarConfigClub(cambios: Record<string, unknown>) {
-  const { data, error } = await supabaseAdmin.from('configuracion_club').update(cambios).eq('id', 1).select().single();
+// El cuerpo llega en camelCase (configClubSchema); la tabla usa snake_case.
+export async function actualizarConfigClub(cambios: { montoMensualidad?: number; diaVencimiento?: number }) {
+  const fila: Record<string, number> = {};
+  if (cambios.montoMensualidad !== undefined) fila.monto_mensualidad = cambios.montoMensualidad;
+  if (cambios.diaVencimiento !== undefined) fila.dia_vencimiento = cambios.diaVencimiento;
+  const { data, error } = await supabaseAdmin.from('configuracion_club').update(fila).eq('id', 1).select().single();
   if (error) throw error;
   return data;
 }
