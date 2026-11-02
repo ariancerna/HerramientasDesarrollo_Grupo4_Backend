@@ -3,7 +3,8 @@
  * servidor (campo `href`). Ajustarlas aquí al integrar con el front.
  */
 export const RUTAS_FRONT = {
-  asistenciaAlumno: '/alumno/asistencia',
-  pagosAlumno: '/alumno/pagos',
-  anunciosAlumno: '/alumno/anuncios',
+  asistenciaAlumno: '/dashboard/alumno/historial',
+  pagosAlumno: '/dashboard/alumno/pagos',
+  // Los anuncios del alumno se muestran en su panel de inicio.
+  anunciosAlumno: '/dashboard/alumno',
 } as const;
