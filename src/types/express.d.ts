@@ -11,6 +11,7 @@ export interface AuthUser {
   estudianteId?: string; // solo si rol === 'ALU'
   profesorId?: string; 
   email: string;  // solo si rol === 'PROF'
+  fotoUrl?: string; // foto de perfil guardada en los metadatos de Supabase Auth
 }
 
 declare global {

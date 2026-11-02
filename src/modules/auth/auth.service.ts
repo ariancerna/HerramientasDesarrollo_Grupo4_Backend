@@ -117,3 +117,13 @@ export async function changePassword(email: string, id: string, passwordActual: 
   await repository.cambiarPasswordPropia(email, id, passwordActual, passwordNueva);
   return { mensaje: 'Contraseña actualizada correctamente.' };
 }
+
+/** AUTH-11 — Foto de perfil de la cuenta autenticada (cualquier rol). */
+export async function subirFotoPerfil(usuarioId: string, file: Express.Multer.File | undefined) {
+  if (!file) throw ApiError.badRequest('Adjunta una imagen en el campo foto');
+  return { fotoUrl: await repository.guardarFotoPerfil(usuarioId, file) };
+}
+
+export async function quitarFotoPerfil(usuarioId: string) {
+  await repository.quitarFotoPerfil(usuarioId);
+}

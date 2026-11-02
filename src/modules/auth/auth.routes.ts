@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireAuth } from '../../middlewares/auth.middleware';
+import { upload } from '../../middlewares/upload.middleware';
 import { validateBody, validateQuery } from '../../middlewares/validate.middleware';
 import * as controller from './auth.controller';
 import {
@@ -35,5 +36,8 @@ router.post('/password/verify', validateBody(verifyCodeSchema), controller.verif
 router.post('/password/reset', validateBody(resetPasswordSchema), controller.resetPassword);
 // AUTH-10
 router.patch('/password', requireAuth, validateBody(changePasswordSchema), controller.changePassword);
+// AUTH-11 — foto de perfil de cualquier rol (multipart, campo "foto")
+router.put('/me/foto', requireAuth, upload.single('foto'), controller.subirFotoPerfil);
+router.delete('/me/foto', requireAuth, controller.quitarFotoPerfil);
 
 export default router;

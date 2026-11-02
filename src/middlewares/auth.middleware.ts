@@ -47,6 +47,7 @@ export async function requireAuth(req: Request, _res: Response, next: NextFuncti
       rol: fila.rol,
       estudianteId: fila.estudiante_id ?? undefined,
       profesorId: fila.profesor_id ?? undefined,
+      fotoUrl: typeof data.user.user_metadata?.avatar_url === 'string' ? data.user.user_metadata.avatar_url : undefined,
     };
 
     req.user = user;

@@ -94,3 +94,19 @@ export async function changePassword(req: Request, res: Response, next: NextFunc
     next(err);
   }
 }
+export async function subirFotoPerfil(req: Request, res: Response, next: NextFunction) {
+  try {
+    ok(res, await service.subirFotoPerfil(req.user!.id, req.file));
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function quitarFotoPerfil(req: Request, res: Response, next: NextFunction) {
+  try {
+    await service.quitarFotoPerfil(req.user!.id);
+    res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+}

@@ -157,3 +157,41 @@ export async function actualizarPasswordAuth(usuarioId: string, nuevaPassword: s
   const { error } = await supabaseAdmin.auth.admin.updateUserById(usuarioId, { password: nuevaPassword });
   if (error) throw error;
 }
+
+const EXTENSIONES_FOTO: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+
+/**
+ * Foto de perfil de cualquier cuenta: se guarda en el bucket "avatares" y su URL
+ * en los metadatos de Auth, así no requiere columnas nuevas en la base de datos.
+ */
+export async function guardarFotoPerfil(usuarioId: string, file: Express.Multer.File) {
+  const extension = EXTENSIONES_FOTO[file.mimetype];
+  if (!extension) throw ApiError.badRequest('Solo se admiten imágenes JPEG, PNG o WebP');
+  const path = `usuarios/${usuarioId}/foto.${extension}`;
+
+  const { error } = await supabaseAdmin.storage.from('avatares').upload(path, file.buffer, {
+    contentType: file.mimetype,
+    upsert: true,
+  });
+  if (error) throw error;
+
+  // El parámetro de versión evita que el navegador muestre la foto anterior en caché.
+  const { data } = supabaseAdmin.storage.from('avatares').getPublicUrl(path);
+  const fotoUrl = `${data.publicUrl}?v=${Date.now()}`;
+  const { error: metaError } = await supabaseAdmin.auth.admin.updateUserById(usuarioId, {
+    user_metadata: { avatar_url: fotoUrl },
+  });
+  if (metaError) throw metaError;
+  return fotoUrl;
+}
+
+export async function quitarFotoPerfil(usuarioId: string) {
+  const { error } = await supabaseAdmin.storage.from('avatares').remove(
+    Object.values(EXTENSIONES_FOTO).map((extension) => `usuarios/${usuarioId}/foto.${extension}`),
+  );
+  if (error) throw error;
+  const { error: metaError } = await supabaseAdmin.auth.admin.updateUserById(usuarioId, {
+    user_metadata: { avatar_url: null },
+  });
+  if (metaError) throw metaError;
+}
