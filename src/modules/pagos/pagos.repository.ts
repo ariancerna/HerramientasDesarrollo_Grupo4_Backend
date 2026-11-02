@@ -201,6 +201,14 @@ export function crearPagosRepository(client: SupabaseClient) {
     return data ?? [];
   }
 
+  /** CFG-03: monto y día de vencimiento configurados por el admin. */
+  async function findClubConfig() {
+    const { data, error } = await client.from('configuracion_club')
+      .select('monto_mensualidad,dia_vencimiento').eq('id', 1).maybeSingle();
+    if (error) throw error;
+    return data ? { monto: Number(data.monto_mensualidad), diaVencimiento: Number(data.dia_vencimiento) } : null;
+  }
+
   async function remove(id: string) {
     const { data, error } = await client.from(TABLE).delete().eq('id', id).select('id').maybeSingle();
     if (error) throw error;
@@ -219,6 +227,7 @@ export function crearPagosRepository(client: SupabaseClient) {
     update,
     updatePaymentDetails,
     createManyIfMissing,
+    findClubConfig,
     remove,
   };
 }
@@ -237,5 +246,6 @@ export const {
   update,
   updatePaymentDetails,
   createManyIfMissing,
+  findClubConfig,
   remove,
 } = pagosRepository;

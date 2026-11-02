@@ -40,7 +40,7 @@ async function servidor(t, users = { admin, profesor, alumno }) {
   const rows = Object.fromEntries(Object.entries(users).map(([token, user]) => [token, {
     id: user.id, usuario: token, email: `${token}@example.invalid`, nombre: 'Cuenta de prueba',
     rol: user.rol, estudiante_id: user.estudianteId ?? null, profesor_id: user.profesorId ?? null,
-    activo: true,
+    activo: user.activo ?? true,
   }]));
   t.mock.method(supabaseAnon.auth, 'getUser', async (token) => ({
     data: { user: rows[token] ? { id: rows[token].id } : null }, error: null,

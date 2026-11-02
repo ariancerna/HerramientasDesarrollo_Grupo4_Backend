@@ -9,6 +9,7 @@ POST /api/v1/profesores recibe:
 
 categoriaIds es opcional en creacion. PUT /profesores/:id acepta nombre, usuario o sedeId (al menos uno). PUT /profesores/:id/categorias recibe {"categoriaIds":[]} para desasignar todas, o una lista sin duplicados para reemplazar las asignaciones.
 Las respuestas usan {data: ...} con id, nombre, usuario, email, sedeId y categoriaIds; nunca incluyen password.
+Las consultas relacionan perfil y cuenta por su UUID compartido de Auth, mediante una consulta de cuentas por lote. No requieren que PostgREST tenga registrada una FK entre profesores y usuarios. Un profesor sin cuenta devuelve usuario y email nulos.
 
 La cuenta Auth usa correo real. usuario se guarda en minusculas y permite letras, numeros, punto, guion y guion bajo. Los cambios de nombre y usuario actualizan tambien usuarios, la fuente de verdad del login y los roles. La sede y categorias deben existir.
 Crear el profesor crea primero Auth y guarda perfil, usuario y categorias en una transaccion. Si esta falla, revierte la cuenta Auth. Si tambien falla la compensacion, devuelve AUTH_CLEANUP_REQUIRED con authUserId para que el administrador limpie esa cuenta antes de repetir la creacion.

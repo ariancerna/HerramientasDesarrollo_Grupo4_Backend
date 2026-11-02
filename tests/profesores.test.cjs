@@ -15,7 +15,10 @@ test('PRF valida credenciales, sede, categorias unicas y campos editables', () =
     assert.equal(schema.crearProfesorSchema.safeParse({ ...body, ...changes }).success, false);
   }
   assert.equal(schema.actualizarProfesorSchema.safeParse({}).success, false);
-  assert.equal(schema.actualizarProfesorSchema.safeParse({ password: 'secreto' }).success, false);
+  // PRF-04: password opcional (mín. 6) y categoriaIds sincronizables.
+  assert.equal(schema.actualizarProfesorSchema.safeParse({ password: 'secreto' }).success, true);
+  assert.equal(schema.actualizarProfesorSchema.safeParse({ password: '123' }).success, false);
+  assert.equal(schema.actualizarProfesorSchema.safeParse({ categoriaIds: [id, id] }).success, false);
   assert.equal(schema.asignarCategoriasSchema.safeParse({ categoriaIds: [] }).success, true);
 });
 test('PRF revierte cuenta Auth si falla la transaccion de creacion', async (t) => {
@@ -60,4 +63,25 @@ test('PRF respuestas excluyen password y metadatos de Auth', () => {
   const result = repo.presentProfesor({ id, nombre: 'Profesor', sede_id: id, usuarios: [{ rol: 'PROF', usuario: 'profe', email: body.email, password: 'NO_DEVOLVER' }], profesores_categorias: [{ categoria_id: id }] });
   assert.equal(result.password, undefined);
   assert.deepEqual(result.categoriaIds, [id]);
+});
+
+test('PRF editar usuario impide ocupar nombres existentes y permite conservar el propio', async (t) => {
+  t.mock.method(repo, 'findById', async () => ({ id, usuario: 'profe' }));
+  const consultas = [];
+  t.mock.method(repo, 'usuarioExiste', async (usuario, excluirId) => {
+    consultas.push({ usuario, excluirId });
+    return usuario === 'ocupado';
+  });
+  const update = t.mock.method(repo, 'update', async (_id, changes) => ({ id, ...changes }));
+  await assert.rejects(service.update(id, schema.actualizarProfesorSchema.parse({ usuario: ' OCUPADO ' })), { statusCode: 409 });
+  assert.equal(update.mock.callCount(), 0);
+  assert.equal((await service.update(id, { usuario: 'profe' })).usuario, 'profe');
+  assert.deepEqual(consultas, [{ usuario: 'ocupado', excluirId: id }, { usuario: 'profe', excluirId: id }]);
+});
+
+test('PRF cambiar usuario de profesor inexistente devuelve 404 antes de buscar duplicados', async (t) => {
+  t.mock.method(repo, 'findById', async () => null);
+  const check = t.mock.method(repo, 'usuarioExiste', async () => true);
+  await assert.rejects(service.update(id, { usuario: 'ocupado' }), { statusCode: 404 });
+  assert.equal(check.mock.callCount(), 0);
 });

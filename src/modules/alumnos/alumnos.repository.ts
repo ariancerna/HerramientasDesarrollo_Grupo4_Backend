@@ -3,6 +3,26 @@ import { ApiError } from '../../lib/errors/api-error';
 
 const TABLE = 'alumnos';
 
+/** Contrato del front (Student): camelCase y categoría por id + nombre (regla #7). */
+export function presentAlumno(row: Record<string, any> | null) {
+  if (!row) return row;
+  const categoria = Array.isArray(row.categorias) ? row.categorias[0] : row.categorias;
+  return {
+    id: row.id,
+    codigo: row.codigo ?? null,
+    dni: row.dni,
+    nombres: row.nombres,
+    apellidos: row.apellidos,
+    email: row.email ?? null,
+    telefono: row.telefono ?? null,
+    categoriaId: row.categoria_id ?? null,
+    categoria: typeof row.categoria === 'string' ? row.categoria : categoria?.nombre ?? null,
+    estado: row.estado,
+    fotoUrl: row.foto_url ?? null,
+    ...(row.created_at !== undefined ? { createdAt: row.created_at } : {}),
+  };
+}
+
 export async function findCategoriaIdsByProfesor(profesorId?: string) {
   if (!profesorId) return [];
 
@@ -21,8 +41,12 @@ export async function findAll(filters: Record<string, unknown> = {}) {
     .select('*, categorias(*)', { count: 'exact' });
 
   if (typeof filters.texto === 'string' && filters.texto.trim()) {
-    const texto = filters.texto.trim();
-    query = query.or(`nombres.ilike.%${texto}%,apellidos.ilike.%${texto}%,dni.ilike.%${texto}%,codigo.ilike.%${texto}%`);
+    const literal = filters.texto.trim().replace(/[\\%_]/g, '\\$&');
+    // PostgREST exige comillas para caracteres reservados dentro de un valor.
+    // https://docs.postgrest.org/en/stable/references/api/url_grammar.html
+    const pattern = '"%' + literal.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '%"';
+    query = query.or(['nombres', 'apellidos', 'dni', 'codigo']
+      .map((campo) => campo + '.ilike.' + pattern).join(','));
   }
 
   if (typeof filters.categoriaId === 'string' && filters.categoriaId) {
@@ -42,7 +66,7 @@ export async function findAll(filters: Record<string, unknown> = {}) {
   const from = Number(filters.from ?? (page - 1) * limit);
   const to = Number(filters.to ?? from + limit - 1);
 
-  query = query.range(from, to);
+  query = query.order('apellidos').order('nombres').order('id').range(from, to);
 
   const { data, error, count } = await query;
   if (error) throw error;
@@ -52,7 +76,7 @@ export async function findAll(filters: Record<string, unknown> = {}) {
     page,
     limit,
     total: count ?? 0,
-    totalPages: Math.max(1, Math.ceil((count ?? 0) / Math.max(1, limit))) || 0,
+    totalPages: Math.ceil((count ?? 0) / limit),
   };
 }
 
@@ -111,6 +135,7 @@ export async function findProfileByAlumnoId(alumnoId: string) {
     email: data.email,
     telefono: data.telefono,
     estado: data.estado,
+    categoria_id: data.categoria_id,
     categoria: categoria?.nombre ?? null,
     foto_url: data.foto_url,
   };
@@ -125,6 +150,18 @@ export async function findByCodigo(codigo: string) {
 
   if (error) throw error;
   return data ?? null;
+}
+
+/** Decisión #4: código autogenerado GC-AAAA-NNN (siguiente correlativo del año). */
+export async function siguienteCodigo(anio: number) {
+  const prefijo = `GC-${anio}-`;
+  const { data, error } = await supabaseAdmin.from(TABLE).select('codigo').like('codigo', `${prefijo}%`);
+  if (error) throw error;
+  const maximo = (data ?? []).reduce((max, fila) => {
+    const numero = Number(String(fila.codigo).slice(prefijo.length));
+    return Number.isInteger(numero) && numero > max ? numero : max;
+  }, 0);
+  return `${prefijo}${String(maximo + 1).padStart(3, '0')}`;
 }
 
 export async function findByEmail(email: string) {

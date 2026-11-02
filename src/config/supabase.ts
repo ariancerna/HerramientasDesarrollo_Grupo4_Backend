@@ -13,6 +13,9 @@ export const supabaseAdmin = createClient(env.supabaseUrl, env.supabaseServiceRo
  * Cliente con la anon key: se usa para operaciones de Auth que representan
  * al usuario final (login, refresh, recuperar contraseña) respetando RLS.
  */
-export const supabaseAnon = createClient(env.supabaseUrl, env.supabaseAnonKey, {
-  auth: { autoRefreshToken: false, persistSession: false },
-});
+export function crearClienteAuthAislado() {
+  return createClient(env.supabaseUrl, env.supabaseAnonKey, {
+    auth: { autoRefreshToken: false, persistSession: false, detectSessionInUrl: false },
+  });
+}
+export const supabaseAnon = crearClienteAuthAislado();

@@ -44,6 +44,17 @@ export function crearPagosService(repo: PagosRepository = repository, reloj = ()
     }
   }
 
+  /** Completa monto y vencimiento con la configuración del club (CFG-03) si no se envían. */
+  async function valoresClub(periodo: string, monto?: number, vencimiento?: string) {
+    if (monto !== undefined && vencimiento !== undefined) return { monto, vencimiento };
+    const config = repo.findClubConfig ? await repo.findClubConfig() : null;
+    if (!config) return { ...(monto === undefined ? {} : { monto }), ...(vencimiento === undefined ? {} : { vencimiento }) };
+    return {
+      monto: monto ?? config.monto,
+      vencimiento: vencimiento ?? `${periodo}-${String(config.diaVencimiento).padStart(2, '0')}`,
+    };
+  }
+
   async function list(filters: Record<string, unknown>) {
     return repo.findAll(filters);
   }
@@ -56,7 +67,7 @@ export function crearPagosService(repo: PagosRepository = repository, reloj = ()
 
   async function create(payload: unknown) {
     const datos = validar(crearPagoSchema, payload, 'Datos inválidos');
-    return repo.create({ ...datos, estado: 'pendiente' });
+    return repo.create({ ...datos, ...await valoresClub(datos.periodo, datos.monto, datos.vencimiento), estado: 'pendiente' });
   }
 
   async function estadoMensual(query: Record<string, unknown>) {
@@ -155,6 +166,7 @@ export function crearPagosService(repo: PagosRepository = repository, reloj = ()
     const nuevoPago: CrearPagoRepositoryInput = {
       estudianteId: datos.estudianteId,
       periodo: datos.periodo,
+      ...await valoresClub(datos.periodo),
       estado: 'pagado',
       fechaPago: fecha,
       metodoPago: datos.metodoPago,
@@ -182,11 +194,11 @@ export function crearPagosService(repo: PagosRepository = repository, reloj = ()
   async function generarMensualidad(payload: unknown) {
     const datos = validar(generarMensualidadSchema, payload, 'Datos inválidos');
     const faltantes = await repo.findActiveStudentsWithoutPayment(datos.periodo);
+    const valores = await valoresClub(datos.periodo, datos.monto, datos.vencimiento);
     const pagos = await repo.createManyIfMissing(faltantes.map((alumno) => ({
       estudianteId: alumno.id,
       periodo: datos.periodo,
-      ...(datos.monto === undefined ? {} : { monto: datos.monto }),
-      ...(datos.vencimiento === undefined ? {} : { vencimiento: datos.vencimiento }),
+      ...valores,
     })));
     return { periodo: datos.periodo, generados: pagos.length, pagos };
   }

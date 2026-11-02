@@ -10,7 +10,10 @@ export function validateBody(schema: ZodTypeAny) {
       next();
     } catch (err) {
       if (err instanceof ZodError) {
-        return next(ApiError.badRequest('Datos inválidos', err.flatten().fieldErrors));
+        const { fieldErrors, formErrors } = err.flatten();
+        return next(ApiError.badRequest('Datos inválidos', {
+          ...fieldErrors, ...(formErrors.length ? { _form: formErrors } : {}),
+        }));
       }
       next(err);
     }

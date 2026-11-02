@@ -1,18 +1,32 @@
 import { Router } from 'express';
 import { requireAuth } from '../../middlewares/auth.middleware';
 import { requireRole } from '../../middlewares/role.middleware';
-import { validateBody } from '../../middlewares/validate.middleware';
+import { validateBody, validateParams, validateQuery } from '../../middlewares/validate.middleware';
 import * as controller from './anuncios.controller';
-import { actualizarAnuncioSchema, crearAnuncioSchema } from './anuncios.schema';
+import {
+  actualizarAnuncioSchema,
+  anuncioParamsSchema,
+  crearAnuncioSchema,
+  listarAnunciosSchema,
+  misAnunciosSchema,
+} from './anuncios.schema';
 
 const router = Router();
+export const meAnunciosRoutes = Router();
 
-// ANU-01..06: lectura con alcance por rol (el alumno ve los enviados a él);
-// el profesor redacta, envía y gestiona sus anuncios.
-router.get('/', requireAuth, controller.list);
-router.get('/:id', requireAuth, controller.getById);
-router.post('/', requireAuth, requireRole('PROF'), validateBody(crearAnuncioSchema), controller.create);
-router.put('/:id', requireAuth, requireRole('PROF'), validateBody(actualizarAnuncioSchema), controller.update);
-router.delete('/:id', requireAuth, requireRole('PROF'), controller.remove);
+router.use(requireAuth, requireRole('PROF'));
+// ANU-01
+router.get('/', validateQuery(listarAnunciosSchema), controller.list);
+// ANU-02
+router.post('/', validateBody(crearAnuncioSchema), controller.create);
+// ANU-05
+router.post('/:id/enviar', validateParams(anuncioParamsSchema), controller.send);
+// ANU-03
+router.put('/:id', validateParams(anuncioParamsSchema), validateBody(actualizarAnuncioSchema), controller.update);
+// ANU-04
+router.delete('/:id', validateParams(anuncioParamsSchema), controller.remove);
+
+// ANU-06 — se monta en /me/anuncios
+meAnunciosRoutes.get('/', requireAuth, requireRole('ALU'), validateQuery(misAnunciosSchema), controller.mine);
 
 export default router;

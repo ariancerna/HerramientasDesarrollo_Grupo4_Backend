@@ -6,6 +6,18 @@ import { env } from '../config/env';
 // Middleware de errores: SIEMPRE va al final, después de montar todas las rutas.
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function errorMiddleware(err: unknown, _req: Request, res: Response, _next: NextFunction) {
+  if (typeof err === 'object' && err !== null && 'type' in err && 'status' in err) {
+    if (err.type === 'entity.parse.failed' && err.status === 400) {
+      return res.status(400).json({
+        error: { code: 'BAD_REQUEST', message: 'El cuerpo debe ser un objeto JSON válido' },
+      });
+    }
+    if (err.type === 'entity.too.large' && err.status === 413) {
+      return res.status(413).json({
+        error: { code: 'PAYLOAD_TOO_LARGE', message: 'El cuerpo de la solicitud es demasiado grande' },
+      });
+    }
+  }
   if (err instanceof MulterError) {
     const demasiadoGrande = err.code === 'LIMIT_FILE_SIZE';
     return res.status(demasiadoGrande ? 413 : 400).json({

@@ -36,14 +36,33 @@ test('PRF Postgres mantiene perfil y cuenta atomicos, reemplaza asignaciones y p
   assert.equal((await db.query('SELECT eliminar_profesor($1) AS removed', [id])).rows[0].removed, true);
   assert.equal((await db.query('SELECT eliminar_profesor($1) AS removed', [missing])).rows[0].removed, false);
 });
-test('PRF Postgres revierte eliminacion si el profesor tiene evaluaciones', async (t) => {
-  const db = await postgresFixture(t, ['_profesores_transacciones.sql']);
+test('PRF Postgres conserva historial: quita acceso y asignaciones pero no las evaluaciones', async (t) => {
+  const db = await postgresFixture(t, ['_profesores_transacciones.sql', '_profesores_historial_codigos.sql']);
   const { rows: [sede] } = await db.query("INSERT INTO sedes(nombre) VALUES ('Sede 1') RETURNING id");
   await db.query('SELECT crear_profesor($1,$2,$3,$4,$5,$6::uuid[])', [id, 'Profesor', 'profesor', 'profesor@example.invalid', sede.id, []]);
   const { rows: [alu] } = await db.query("INSERT INTO alumnos(dni,nombres,apellidos) VALUES ('12345678','Alumno','Prueba') RETURNING id");
   await db.query("INSERT INTO evaluaciones(alumno_id,profesor_id,fecha,observaciones) VALUES ($1,$2,'2026-10-12','Prueba')", [alu.id, id]);
-  await assert.rejects(db.query('SELECT eliminar_profesor($1)', [id]), { code: '23503' });
-  assert.equal((await db.query('SELECT * FROM usuarios')).rows.length, 1);
-  assert.equal((await db.query('SELECT * FROM profesores')).rows.length, 1);
-  assert.equal((await db.query('SELECT * FROM profesores_auth_pendientes')).rows.length, 0);
+  assert.equal((await db.query('SELECT eliminar_profesor($1) AS removed', [id])).rows[0].removed, true);
+  assert.equal((await db.query('SELECT * FROM usuarios')).rows.length, 0);
+  const { rows: [perfil] } = await db.query('SELECT eliminado_en, sede_id FROM profesores WHERE id=$1', [id]);
+  assert.ok(perfil.eliminado_en);
+  assert.equal(perfil.sede_id, null);
+  assert.equal((await db.query('SELECT * FROM evaluaciones WHERE profesor_id=$1', [id])).rows.length, 1);
+  assert.equal((await db.query('SELECT * FROM profesores_auth_pendientes')).rows.length, 1);
+  await db.query('DELETE FROM sedes WHERE id=$1', [sede.id]);
+  await assert.rejects(db.query('SELECT actualizar_profesor($1,$2::jsonb)', [id, JSON.stringify({ nombre: 'X' })]), { code: 'P0002' });
+  // Reintentar el DELETE sigue siendo seguro mientras falte limpiar Auth.
+  assert.equal((await db.query('SELECT eliminar_profesor($1) AS removed', [id])).rows[0].removed, true);
+});
+
+test('AUTH-08 Postgres bloquea el código tras 5 intentos fallidos', async (t) => {
+  const db = await postgresFixture(t, ['_profesores_transacciones.sql', '_profesores_historial_codigos.sql']);
+  await db.query("INSERT INTO codigos_recuperacion(correo,codigo,expira_en) VALUES ('a@example.invalid','123456', now() + interval '10 minutes')");
+  await db.exec('SET ROLE service_role');
+  const verificar = async (codigo) => (await db.query('SELECT verificar_codigo_recuperacion($1,$2) AS r', ['a@example.invalid', codigo])).rows[0].r;
+  for (let i = 0; i < 4; i += 1) assert.equal(await verificar('000000'), 'invalido');
+  assert.equal(await verificar('000000'), 'bloqueado');
+  assert.equal(await verificar('123456'), 'invalido');
+  await db.exec('RESET ROLE; SET ROLE anon');
+  await assert.rejects(db.query("SELECT verificar_codigo_recuperacion('a','b')"), { code: '42501' });
 });

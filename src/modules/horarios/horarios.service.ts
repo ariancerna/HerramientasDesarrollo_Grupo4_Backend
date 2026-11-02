@@ -1,7 +1,13 @@
 import { ApiError } from '../../lib/errors/api-error';
+import type { AuthUser } from '../../types/express';
+import { findCategoriaIdsByProfesor } from '../alumnos/alumnos.repository';
 import { getById as categoriaById } from '../categorias/categorias.service';
 import * as repository from './horarios.repository';
 import { CambiosHorario, NuevoHorario } from './horarios.schema';
+function segundos(hora: string) {
+  const [horas, minutos, segundos = 0] = hora.split(':').map(Number);
+  return horas * 3600 + minutos * 60 + segundos;
+}
 export async function list(categoriaId: string, filters: Record<string, unknown>) {
   await categoriaById(categoriaId);
   return repository.findAll(categoriaId, filters);
@@ -29,7 +35,7 @@ export async function create(categoriaId: string, body: NuevoHorario) {
 }
 export async function update(categoriaId: string, id: string, body: CambiosHorario) {
   const actual = await getById(categoriaId, id);
-  if ((body.horaFin ?? actual.horaFin) <= (body.horaInicio ?? actual.horaInicio)) {
+  if (segundos(body.horaFin ?? actual.horaFin) <= segundos(body.horaInicio ?? actual.horaInicio)) {
     throw ApiError.badRequest('La hora final debe ser posterior');
   }
   if (body.dia !== undefined) await checkDia(categoriaId, body.dia, id);
@@ -37,12 +43,28 @@ export async function update(categoriaId: string, id: string, body: CambiosHorar
   try { horario = await repository.update(categoriaId, id, body); }
   catch (error: any) {
     if (error?.code === '23505') throw ApiError.conflict('Ya existe un horario para ese dia en la categoria');
+    if (error?.code === '23514') throw ApiError.badRequest('La hora final debe ser posterior a la inicial');
     throw error;
   }
   if (!horario) throw ApiError.notFound('Horario no encontrado');
   return horario;
 }
+/** HOR-05 — horarios de las categorías del profesor, ordenados por día y hora. */
+export async function misHorarios(usuario: AuthUser, dia?: string) {
+  const categorias = await findCategoriaIdsByProfesor(usuario.profesorId ?? usuario.id);
+  const horarios = await repository.findByCategorias(categorias);
+  if (!dia) return horarios;
+  const sinTildes = (texto: string) => texto.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  return horarios.filter((horario) => sinTildes(horario.dia) === sinTildes(dia));
+}
 export async function remove(categoriaId: string, id: string) {
   await categoriaById(categoriaId);
-  if (!await repository.remove(categoriaId, id)) throw ApiError.notFound('Horario no encontrado');
+  try {
+    if (!await repository.remove(categoriaId, id)) throw ApiError.notFound('Horario no encontrado');
+  } catch (error: unknown) {
+    if (typeof error === 'object' && error !== null && 'code' in error && error.code === '23503') {
+      throw ApiError.conflict('El horario tiene registros asociados y no puede eliminarse');
+    }
+    throw error;
+  }
 }

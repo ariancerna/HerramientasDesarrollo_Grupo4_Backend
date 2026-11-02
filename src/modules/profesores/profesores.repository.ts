@@ -1,4 +1,5 @@
 import { supabaseAdmin } from '../../config/supabase';
+import { findByIds as findCategoriasByIds } from '../categorias/categorias.repository';
 import { CambiosProfesor, NuevoProfesor } from './profesores.schema';
 const SELECT = '*, profesores_categorias(categoria_id)';
 export function presentProfesor(row: any) {
@@ -6,30 +7,35 @@ export function presentProfesor(row: any) {
   return { id: row.id, nombre: row.nombre, sedeId: row.sede_id, usuario: cuenta?.usuario ?? null, email: cuenta?.email ?? null,
     categoriaIds: (row.profesores_categorias ?? []).map((item: any) => item.categoria_id) };
 }
-// Las cuentas se consultan aparte: el embed usuarios(...) depende de la FK
-// usuarios.profesor_id, que no siempre existe en el proyecto compartido.
-async function conCuentas(rows: any[]) {
-  if (rows.length === 0) return rows;
-  const { data, error } = await supabaseAdmin.from('usuarios').select('id,usuario,email,rol,profesor_id')
-    .in('profesor_id', rows.map((row) => row.id));
+async function attachCuentas(rows: any[]) {
+  if (rows.length === 0) return [];
+  // El perfil y su cuenta comparten el UUID de Auth. No dependemos de una
+  // FK usuarios.profesor_id para que PostgREST pueda resolver la consulta.
+  const { data, error } = await supabaseAdmin.from('usuarios')
+    .select('id,usuario,email,rol').eq('rol', 'PROF').in('id', rows.map((row) => row.id));
   if (error) throw error;
-  return rows.map((row) => ({ ...row, usuarios: (data ?? []).filter((user: any) => user.profesor_id === row.id) }));
+  const cuentas = new Map((data ?? []).map((cuenta) => [cuenta.id, cuenta]));
+  return rows.map((row) => presentProfesor({ ...row, usuarios: cuentas.has(row.id) ? [cuentas.get(row.id)] : [] }));
 }
 export async function findAll(filters: Record<string, unknown> = {}) {
-  let query = supabaseAdmin.from('profesores').select(SELECT).order('nombre').order('id');
+  // PRF-05 es soft delete: los eliminados conservan historial pero no se listan.
+  let query = supabaseAdmin.from('profesores').select(SELECT).is('eliminado_en', null).order('nombre').order('id');
   if (typeof filters.texto === 'string' && filters.texto) query = query.ilike('nombre', `%${filters.texto.replace(/[\\%_]/g, '\\$&')}%`);
   if (filters.sedeId) query = query.eq('sede_id', filters.sedeId);
   const { data, error } = await query;
   if (error) throw error;
-  return (await conCuentas(data ?? [])).map(presentProfesor);
+  return attachCuentas(data ?? []);
 }
 export async function findById(id: string) {
-  const { data, error } = await supabaseAdmin.from('profesores').select(SELECT).eq('id', id).maybeSingle();
+  const { data, error } = await supabaseAdmin.from('profesores').select(SELECT).eq('id', id).is('eliminado_en', null).maybeSingle();
   if (error) throw error;
-  return data ? presentProfesor((await conCuentas([data]))[0]) : null;
+  return data ? (await attachCuentas([data]))[0] : null;
 }
-export async function usuarioExiste(usuario: string) {
-  const { data, error } = await supabaseAdmin.from('usuarios').select('id').ilike('usuario', usuario.replace(/[\\%_]/g, '\\$&')).limit(1).maybeSingle();
+export async function usuarioExiste(usuario: string, excluirId?: string) {
+  let query = supabaseAdmin.from('usuarios').select('id')
+    .ilike('usuario', usuario.replace(/[\\%_]/g, '\\$&'));
+  if (excluirId) query = query.neq('id', excluirId);
+  const { data, error } = await query.limit(1).maybeSingle();
   if (error) throw error;
   return Boolean(data);
 }
@@ -59,6 +65,15 @@ export async function update(id: string, body: CambiosProfesor) {
 }
 export async function asignarCategorias(id: string, ids: string[]) {
   return rpc('asignar_categorias_profesor', { p_id: id, p_categoria_ids: ids });
+}
+export async function actualizarPassword(id: string, password: string) {
+  const { error } = await supabaseAdmin.auth.admin.updateUserById(id, { password });
+  if (error) throw error;
+}
+export async function categoriasDe(profesorId: string) {
+  const { data, error } = await supabaseAdmin.from('profesores_categorias').select('categoria_id').eq('profesor_id', profesorId);
+  if (error) throw error;
+  return findCategoriasByIds((data ?? []).map((row) => row.categoria_id as string));
 }
 export async function remove(id: string): Promise<boolean> { return rpc('eliminar_profesor', { p_id: id }); }
 export async function completarEliminacion(id: string) {

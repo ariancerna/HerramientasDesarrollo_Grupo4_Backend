@@ -1,30 +1,26 @@
-import { NextFunction, Request, Response } from "express";
-import { created, ok } from "../../lib/utils/response";
-import { AsistenciasService } from "./asistencias.service";
+import { NextFunction, Request, Response } from 'express';
+import { created, ok } from '../../lib/utils/response';
+import * as service from './asistencias.service';
+import type { FiltroAsistencias, FiltroMisAsistencias } from './asistencias.schema';
 
-export class AsistenciasController {
-  static async getAsistencias(req: Request, res: Response, next: NextFunction) {
-    try {
-      const alumnoId = typeof req.query.alumnoId === "string" ? req.query.alumnoId : undefined;
-      ok(res, await AsistenciasService.obtenerTodas(req.user!, alumnoId));
-    } catch (error) {
-      next(error);
-    }
-  }
+export async function create(req: Request, res: Response, next: NextFunction) {
+  try { created(res, await service.registrar(req.user!, req.body)); } catch (err) { next(err); }
+}
 
-  static async createAsistencia(req: Request, res: Response, next: NextFunction) {
-    try {
-      created(res, await AsistenciasService.registrar(req.body));
-    } catch (error) {
-      next(error);
-    }
-  }
+export async function list(req: Request, res: Response, next: NextFunction) {
+  try { res.json(await service.listar(req.user!, req.query as unknown as FiltroAsistencias)); } catch (err) { next(err); }
+}
 
-  static async updateAsistencia(req: Request, res: Response, next: NextFunction) {
-    try {
-      ok(res, await AsistenciasService.corregir(req.params.id, req.body));
-    } catch (error) {
-      next(error);
-    }
-  }
+export async function update(req: Request, res: Response, next: NextFunction) {
+  try { ok(res, await service.corregir(req.params.id, req.body)); } catch (err) { next(err); }
+}
+
+export async function remove(req: Request, res: Response, next: NextFunction) {
+  try { await service.anular(req.params.id); res.status(204).send(); } catch (err) { next(err); }
+}
+
+export async function mine(req: Request, res: Response, next: NextFunction) {
+  try {
+    res.json(await service.misAsistencias(req.user!, req.query as unknown as FiltroMisAsistencias));
+  } catch (err) { next(err); }
 }

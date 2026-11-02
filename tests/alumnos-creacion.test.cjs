@@ -27,8 +27,9 @@ test('HTTP: administrador crea un alumno con el contrato validado y recibe 201',
   assert.equal(response.status, 201);
   const body = await response.json();
   assert.equal(body.data.id, ALUMNO_ID);
-  assert.equal(body.data.categoria_id, CATEGORIA_ID);
-  assert.equal(Object.hasOwn(body.data, 'categoriaId'), false);
+  // Respuestas en camelCase (convención del contrato v1).
+  assert.equal(body.data.categoriaId, CATEGORIA_ID);
+  assert.equal(Object.hasOwn(body.data, 'categoria_id'), false);
 });
 
 test('HTTP: datos inválidos y roles no autorizados no crean alumnos', async (t) => {

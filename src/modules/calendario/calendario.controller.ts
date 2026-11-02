@@ -1,46 +1,26 @@
-import { NextFunction, Request, Response } from "express";
-import { created, ok } from "../../lib/utils/response";
-import { CalendarioService } from "./calendario.service";
+import { NextFunction, Request, Response } from 'express';
+import { created, ok } from '../../lib/utils/response';
+import * as service from './calendario.service';
+import type { FiltroActividades, FiltroEventos } from './calendario.schema';
 
-export class CalendarioController {
-  static async getEventos(_req: Request, res: Response, next: NextFunction) {
-    try {
-      ok(res, await CalendarioService.obtenerTodos());
-    } catch (error) {
-      next(error);
-    }
-  }
+export async function list(req: Request, res: Response, next: NextFunction) {
+  try { ok(res, await service.listar(req.query as unknown as FiltroEventos)); } catch (err) { next(err); }
+}
 
-  static async getEvento(req: Request, res: Response, next: NextFunction) {
-    try {
-      ok(res, await CalendarioService.obtenerPorId(req.params.id));
-    } catch (error) {
-      next(error);
-    }
-  }
+export async function create(req: Request, res: Response, next: NextFunction) {
+  try { created(res, await service.crear(req.body)); } catch (err) { next(err); }
+}
 
-  static async createEvento(req: Request, res: Response, next: NextFunction) {
-    try {
-      created(res, await CalendarioService.registrar(req.body));
-    } catch (error) {
-      next(error);
-    }
-  }
+export async function update(req: Request, res: Response, next: NextFunction) {
+  try { ok(res, await service.editar(req.params.id, req.body)); } catch (err) { next(err); }
+}
 
-  static async updateEvento(req: Request, res: Response, next: NextFunction) {
-    try {
-      ok(res, await CalendarioService.actualizar(req.params.id, req.body));
-    } catch (error) {
-      next(error);
-    }
-  }
+export async function remove(req: Request, res: Response, next: NextFunction) {
+  try { await service.eliminar(req.params.id); res.status(204).send(); } catch (err) { next(err); }
+}
 
-  static async deleteEvento(req: Request, res: Response, next: NextFunction) {
-    try {
-      await CalendarioService.eliminar(req.params.id);
-      res.status(204).send();
-    } catch (error) {
-      next(error);
-    }
-  }
+export async function actividades(req: Request, res: Response, next: NextFunction) {
+  try {
+    ok(res, await service.actividades(req.user!, req.query as unknown as FiltroActividades));
+  } catch (err) { next(err); }
 }

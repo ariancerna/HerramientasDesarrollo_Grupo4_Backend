@@ -9,10 +9,11 @@ const alumnoFields = {
   email: { type: 'string', nullable: true, format: 'email', description: 'Correo electrónico' },
   codigo: { type: 'string', nullable: true, description: 'Código único del alumno' },
   telefono: { type: 'string', nullable: true, description: 'Teléfono de 9 dígitos' },
-  categoria_id: { type: 'string', format: 'uuid', nullable: true, description: 'Identificador de la categoría' },
+  categoriaId: { type: 'string', format: 'uuid', nullable: true, description: 'Identificador de la categoría' },
+  categoria: { type: 'string', nullable: true, description: 'Nombre de la categoría' },
   estado: { type: 'string', enum: ['activo', 'inactivo'], description: 'Estado del alumno' },
-  foto_url: { type: 'string', nullable: true, description: 'URL pública de la foto de perfil' },
-  created_at: { type: 'string', format: 'date-time', description: 'Fecha de creación' },
+  fotoUrl: { type: 'string', nullable: true, description: 'URL pública de la foto de perfil' },
+  createdAt: { type: 'string', format: 'date-time', description: 'Fecha de creación' },
 };
 
 const alumnoSchema = {
@@ -27,18 +28,19 @@ const perfilResponseSchema = {
   properties: { data: { type: 'object', properties: {
     id: alumnoFields.id, nombres: alumnoFields.nombres, apellidos: alumnoFields.apellidos,
     dni: alumnoFields.dni, codigo: alumnoFields.codigo, email: alumnoFields.email,
-    telefono: alumnoFields.telefono, estado: alumnoFields.estado, foto_url: alumnoFields.foto_url,
+    telefono: alumnoFields.telefono, estado: alumnoFields.estado, fotoUrl: alumnoFields.fotoUrl, categoriaId: alumnoFields.categoriaId,
     categoria: { type: 'string', nullable: true, description: 'Nombre de la categoría' },
   } } },
 };
 
 const paginationParams: OpenApiParameter[] = [
-  { name: 'page', in: 'query', required: false, schema: { type: 'integer', minimum: 1, default: 1 } },
+  { name: 'page', in: 'query', required: false, schema: { type: 'integer', minimum: 1, maximum: 1000000, default: 1 } },
   { name: 'limit', in: 'query', required: false, schema: { type: 'integer', minimum: 1, maximum: 100, default: 20 } },
 ];
 
 const listQueryParams: OpenApiParameter[] = [
-  { name: 'texto', in: 'query', required: false, schema: { type: 'string' } },
+  { name: 'texto', in: 'query', required: false, schema: { type: 'string', maxLength: 100,
+    description: 'Búsqueda parcial; sin controles ni comodín *. Los caracteres reservados se protegen.' } },
   { name: 'categoriaId', in: 'query', required: false, schema: { type: 'string', format: 'uuid' } },
   { name: 'estado', in: 'query', required: false, schema: { type: 'string', enum: ['activo', 'inactivo'] } },
   ...paginationParams,
@@ -113,7 +115,7 @@ registerDocs({
       implementado: true,
       queryParams: listQueryParams,
       responses: {
-        '200': { description: 'Lista paginada de alumnos', content: { 'application/json': { schema: { type: 'object', properties: { data: { type: 'object', properties: { data: { type: 'array', items: alumnoSchema }, page: { type: 'integer' }, limit: { type: 'integer' }, total: { type: 'integer' }, totalPages: { type: 'integer' } } } } } } } },
+        '200': { description: 'Lista paginada de alumnos', content: { 'application/json': { schema: { type: 'object', properties: { data: { type: 'array', items: alumnoSchema }, meta: { type: 'object', properties: { page: { type: 'integer' }, limit: { type: 'integer' }, total: { type: 'integer' } } } } } } } },
       },
     },
     {
@@ -227,5 +229,18 @@ registerDocs({
       implementado: true,
       responses: { '204': { description: 'Foto eliminada' } },
     },
+  ],
+});
+
+// Misma funcionalidad que /alumnos/me/perfil, en la ruta de la lista de endpoints v1.
+registerDocs({
+  nombre: 'ALU — Alumnos y perfil',
+  endpoints: [
+    { id: 'ALU-08-ME', metodo: 'GET', ruta: '/me/perfil', descripcion: 'Mis datos + categoría', acceso: 'ALU', implementado: true,
+      responses: { '200': { description: 'Perfil', content: { 'application/json': { schema: perfilResponseSchema } } } } },
+    { id: 'ALU-09-ME', metodo: 'PATCH', ruta: '/me/perfil', descripcion: 'Actualiza {nombres, apellidos, email, telefono?}', acceso: 'ALU', implementado: true },
+    { id: 'ALU-10-ME', metodo: 'PUT', ruta: '/me/perfil/foto', descripcion: 'Sube foto (multipart, campo "foto"; JPG/PNG/WebP, máx. 1.5 MB) → {fotoUrl}', acceso: 'ALU', implementado: true },
+    { id: 'ALU-11-ME', metodo: 'DELETE', ruta: '/me/perfil/foto', descripcion: 'Quita la foto', acceso: 'ALU', implementado: true,
+      responses: { '204': { description: 'Foto eliminada' } } },
   ],
 });

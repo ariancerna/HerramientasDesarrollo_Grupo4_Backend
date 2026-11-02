@@ -1,14 +1,12 @@
 import { supabaseAdmin } from '../../config/supabase';
+import { presentHorarios } from '../../lib/utils/horarios';
 
 const SELECT = '*, horarios(*), profesores_categorias(profesor_id)';
 export function presentCategoria(row: any) {
   return {
     id: row.id, nombre: row.nombre, descripcion: row.descripcion,
     profesorIds: (row.profesores_categorias ?? []).map((item: any) => item.profesor_id),
-    horarios: (row.horarios ?? []).map((item: any) => ({
-      id: item.id, dia: item.dia.toLowerCase(), horaInicio: item.hora_inicio.slice(0, 5),
-      horaFin: item.hora_fin.slice(0, 5), cancha: item.cancha, estado: item.estado,
-    })),
+    horarios: presentHorarios(row.horarios ?? []),
   };
 }
 export async function findAll(filters: Record<string, unknown> = {}) {
@@ -17,6 +15,12 @@ export async function findAll(filters: Record<string, unknown> = {}) {
     query = query.ilike('nombre', `%${filters.texto.replace(/[\\%_]/g, '\\$&')}%`);
   }
   const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).map(presentCategoria);
+}
+export async function findByIds(ids: string[]) {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabaseAdmin.from('categorias').select(SELECT).in('id', ids).order('nombre').order('id');
   if (error) throw error;
   return (data ?? []).map(presentCategoria);
 }
