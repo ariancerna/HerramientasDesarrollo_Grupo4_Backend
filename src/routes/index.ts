@@ -70,6 +70,7 @@ router.use('/reportes', reportesRoutes);
 router.use('/dashboard', dashboardRoutes);
 
 // Épica: CFG — Configuración
-router.use('/configuracion', configuracionRoutes);
+// Sus rutas ya incluyen el prefijo (/me/configuracion y /configuracion/club).
+router.use(configuracionRoutes);
 
 export default router;
