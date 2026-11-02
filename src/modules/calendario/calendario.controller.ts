@@ -1,28 +1,46 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
+import { created, ok } from "../../lib/utils/response";
 import { CalendarioService } from "./calendario.service";
-import { CalendarioSchema } from "./calendario.schema";
 
 export class CalendarioController {
-  static async getEventos(req: Request, res: Response) {
+  static async getEventos(_req: Request, res: Response, next: NextFunction) {
     try {
-      const eventos = await CalendarioService.obtenerTodos();
-      res.status(200).json({ success: true, data: eventos });
-    } catch (error: any) {
-      res.status(500).json({ success: false, message: error.message });
+      ok(res, await CalendarioService.obtenerTodos());
+    } catch (error) {
+      next(error);
     }
   }
 
-  static async createEvento(req: Request, res: Response) {
+  static async getEvento(req: Request, res: Response, next: NextFunction) {
     try {
-      // Validamos los datos con Zod antes de pasarlos al servicio
-      const validatedData = CalendarioSchema.parse(req.body);
-      const nuevoEvento = await CalendarioService.registrar(validatedData);
+      ok(res, await CalendarioService.obtenerPorId(req.params.id));
+    } catch (error) {
+      next(error);
+    }
+  }
 
-      res.status(201).json({ success: true, data: nuevoEvento });
-    } catch (error: any) {
-      res
-        .status(400)
-        .json({ success: false, message: error.errors || error.message });
+  static async createEvento(req: Request, res: Response, next: NextFunction) {
+    try {
+      created(res, await CalendarioService.registrar(req.body));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateEvento(req: Request, res: Response, next: NextFunction) {
+    try {
+      ok(res, await CalendarioService.actualizar(req.params.id, req.body));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async deleteEvento(req: Request, res: Response, next: NextFunction) {
+    try {
+      await CalendarioService.eliminar(req.params.id);
+      res.status(204).send();
+    } catch (error) {
+      next(error);
     }
   }
 }
