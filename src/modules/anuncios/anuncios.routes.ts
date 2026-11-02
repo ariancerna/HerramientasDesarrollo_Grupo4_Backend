@@ -7,13 +7,12 @@ import { actualizarAnuncioSchema, crearAnuncioSchema } from './anuncios.schema';
 
 const router = Router();
 
-// ANU-01..05 (agregar /me/anuncios → ANU-06)
-// TODO: ajustar roles exactos según docs/ENDPOINTS.md (algunos endpoints de este
-// módulo son de solo lectura para ALU/PROF, o tienen reglas de alcance por rol).
+// ANU-01..06: lectura con alcance por rol (el alumno ve los enviados a él);
+// el profesor redacta, envía y gestiona sus anuncios.
 router.get('/', requireAuth, controller.list);
 router.get('/:id', requireAuth, controller.getById);
-router.post('/', requireAuth, requireRole('ADM'), validateBody(crearAnuncioSchema), controller.create);
-router.put('/:id', requireAuth, requireRole('ADM'), validateBody(actualizarAnuncioSchema), controller.update);
-router.delete('/:id', requireAuth, requireRole('ADM'), controller.remove);
+router.post('/', requireAuth, requireRole('PROF'), validateBody(crearAnuncioSchema), controller.create);
+router.put('/:id', requireAuth, requireRole('PROF'), validateBody(actualizarAnuncioSchema), controller.update);
+router.delete('/:id', requireAuth, requireRole('PROF'), controller.remove);
 
 export default router;
