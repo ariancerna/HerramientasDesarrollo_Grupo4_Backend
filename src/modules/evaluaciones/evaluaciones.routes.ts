@@ -7,13 +7,11 @@ import { actualizarEvaluacionSchema, crearEvaluacionSchema } from './evaluacione
 
 const router = Router();
 
-// EVA-01..04
-// TODO: ajustar roles exactos según docs/ENDPOINTS.md (algunos endpoints de este
-// módulo son de solo lectura para ALU/PROF, o tienen reglas de alcance por rol).
+// EVA-01..04: lectura con alcance por rol; el profesor registra y gestiona sus evaluaciones.
 router.get('/', requireAuth, controller.list);
 router.get('/:id', requireAuth, controller.getById);
-router.post('/', requireAuth, requireRole('ADM'), validateBody(crearEvaluacionSchema), controller.create);
-router.put('/:id', requireAuth, requireRole('ADM'), validateBody(actualizarEvaluacionSchema), controller.update);
-router.delete('/:id', requireAuth, requireRole('ADM'), controller.remove);
+router.post('/', requireAuth, requireRole('PROF'), validateBody(crearEvaluacionSchema), controller.create);
+router.put('/:id', requireAuth, requireRole('PROF'), validateBody(actualizarEvaluacionSchema), controller.update);
+router.delete('/:id', requireAuth, requireRole('PROF'), controller.remove);
 
 export default router;
