@@ -1,10 +1,19 @@
 import { supabaseAdmin } from '../../config/supabase';
 import { CambiosProfesor, NuevoProfesor } from './profesores.schema';
-const SELECT = '*, usuarios(usuario,email,rol), profesores_categorias(categoria_id)';
+const SELECT = '*, profesores_categorias(categoria_id)';
 export function presentProfesor(row: any) {
   const cuenta = (row.usuarios ?? []).find((user: any) => user.rol === 'PROF');
   return { id: row.id, nombre: row.nombre, sedeId: row.sede_id, usuario: cuenta?.usuario ?? null, email: cuenta?.email ?? null,
     categoriaIds: (row.profesores_categorias ?? []).map((item: any) => item.categoria_id) };
+}
+// Las cuentas se consultan aparte: el embed usuarios(...) depende de la FK
+// usuarios.profesor_id, que no siempre existe en el proyecto compartido.
+async function conCuentas(rows: any[]) {
+  if (rows.length === 0) return rows;
+  const { data, error } = await supabaseAdmin.from('usuarios').select('id,usuario,email,rol,profesor_id')
+    .in('profesor_id', rows.map((row) => row.id));
+  if (error) throw error;
+  return rows.map((row) => ({ ...row, usuarios: (data ?? []).filter((user: any) => user.profesor_id === row.id) }));
 }
 export async function findAll(filters: Record<string, unknown> = {}) {
   let query = supabaseAdmin.from('profesores').select(SELECT).order('nombre').order('id');
@@ -12,12 +21,12 @@ export async function findAll(filters: Record<string, unknown> = {}) {
   if (filters.sedeId) query = query.eq('sede_id', filters.sedeId);
   const { data, error } = await query;
   if (error) throw error;
-  return (data ?? []).map(presentProfesor);
+  return (await conCuentas(data ?? [])).map(presentProfesor);
 }
 export async function findById(id: string) {
   const { data, error } = await supabaseAdmin.from('profesores').select(SELECT).eq('id', id).maybeSingle();
   if (error) throw error;
-  return data ? presentProfesor(data) : null;
+  return data ? presentProfesor((await conCuentas([data]))[0]) : null;
 }
 export async function usuarioExiste(usuario: string) {
   const { data, error } = await supabaseAdmin.from('usuarios').select('id').ilike('usuario', usuario.replace(/[\\%_]/g, '\\$&')).limit(1).maybeSingle();
