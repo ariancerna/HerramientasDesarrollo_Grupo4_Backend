@@ -1,27 +1,38 @@
 import { supabaseAdmin } from '../../config/supabase';
 
-export async function obtenerMiConfig(usuarioId: string) {
-  const { data } = await supabaseAdmin.from('configuraciones_usuario').select('*').eq('usuario_id', usuarioId).maybeSingle();
-  return data ?? { tema: 'sistema', notificacionesSilenciadas: false };
+/** Las tablas usan snake_case; el API responde en camelCase como el resto de módulos. */
+function presentarMiConfig(row: any) {
+  return { tema: row.tema, notificacionesSilenciadas: row.notificaciones_silenciadas };
 }
 
-export async function actualizarMiConfig(usuarioId: string, cambios: Record<string, unknown>) {
-  const { data, error } = await supabaseAdmin
-    .from('configuraciones_usuario')
-    .upsert({ usuario_id: usuarioId, ...cambios })
-    .select()
-    .single();
+function presentarConfigClub(row: any) {
+  return { montoMensualidad: Number(row.monto_mensualidad), diaVencimiento: row.dia_vencimiento };
+}
+
+export async function obtenerMiConfig(usuarioId: string) {
+  const { data } = await supabaseAdmin.from('configuraciones_usuario').select('*').eq('usuario_id', usuarioId).maybeSingle();
+  return data ? presentarMiConfig(data) : { tema: 'sistema', notificacionesSilenciadas: false };
+}
+
+export async function actualizarMiConfig(usuarioId: string, cambios: { tema?: string; notificacionesSilenciadas?: boolean }) {
+  const fila: Record<string, unknown> = { usuario_id: usuarioId };
+  if (cambios.tema !== undefined) fila.tema = cambios.tema;
+  if (cambios.notificacionesSilenciadas !== undefined) fila.notificaciones_silenciadas = cambios.notificacionesSilenciadas;
+  const { data, error } = await supabaseAdmin.from('configuraciones_usuario').upsert(fila).select().single();
   if (error) throw error;
-  return data;
+  return presentarMiConfig(data);
 }
 
 export async function obtenerConfigClub() {
   const { data } = await supabaseAdmin.from('configuracion_club').select('*').single();
-  return data ?? { montoMensualidad: 180, diaVencimiento: 10 };
+  return data ? presentarConfigClub(data) : { montoMensualidad: 180, diaVencimiento: 10 };
 }
 
-export async function actualizarConfigClub(cambios: Record<string, unknown>) {
-  const { data, error } = await supabaseAdmin.from('configuracion_club').update(cambios).eq('id', 1).select().single();
+export async function actualizarConfigClub(cambios: { montoMensualidad?: number; diaVencimiento?: number }) {
+  const fila: Record<string, unknown> = {};
+  if (cambios.montoMensualidad !== undefined) fila.monto_mensualidad = cambios.montoMensualidad;
+  if (cambios.diaVencimiento !== undefined) fila.dia_vencimiento = cambios.diaVencimiento;
+  const { data, error } = await supabaseAdmin.from('configuracion_club').update(fila).eq('id', 1).select().single();
   if (error) throw error;
-  return data;
+  return presentarConfigClub(data);
 }
