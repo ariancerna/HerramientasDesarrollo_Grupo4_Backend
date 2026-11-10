@@ -20,3 +20,18 @@
 - La pareja `(alumno_id, periodo)` identifica un cargo único en la base de datos.
 - Si ya existe un cargo para esa pareja, responde HTTP 409 con el código `CONFLICT`.
 - La restricción única de la base de datos es la autoridad final, incluyendo intentos concurrentes.
+
+## PAG-12 — Pago en línea con Culqi
+
+`POST /api/v1/me/pagos/culqi` (rol ALU). Cuerpo: `{ "token": "tkn_...", "email": "...", "periodo": "AAAA-MM" }`.
+
+- El navegador abre Culqi Checkout con la llave pública y obtiene un token de tarjeta; los datos de la tarjeta nunca pasan por nuestro backend.
+- El backend toma el importe de la base de datos (o de la configuración del club si aún no hay cargo del mes actual) y crea el cargo en Culqi con la llave secreta.
+- Solo si Culqi aprueba, el pago queda `pagado` con `metodo_pago = 'Tarjeta'` y el id del cargo (`chr_...`) como `codigo_operacion`, y se notifica al alumno.
+- Errores: 402 tarjeta rechazada (mensaje de Culqi), 404 período sin mensualidad, 409 ya pagada, 502 Culqi no responde, 503 falta `CULQI_SECRET_KEY`.
+
+Configuración:
+
+1. Aplicar la migración `20261110120000_pagos_metodo_tarjeta.sql` en Supabase.
+2. Definir `CULQI_SECRET_KEY` (llave `sk_test_...` del panel de Culqi) en el `.env` y en Railway.
+3. Para probar usar las tarjetas de prueba de Culqi (por ejemplo Visa `4111 1111 1111 1111`, fecha futura, CVV `123`).

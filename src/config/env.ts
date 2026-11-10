@@ -10,6 +10,9 @@ const envSchema = z.object({
   SUPABASE_URL: z.string().url({ message: 'SUPABASE_URL debe ser una URL válida' }),
   SUPABASE_ANON_KEY: z.string().min(1, 'Falta SUPABASE_ANON_KEY'),
   SUPABASE_SERVICE_ROLE_KEY: z.string().min(1, 'Falta SUPABASE_SERVICE_ROLE_KEY'),
+  // Pasarela Culqi (opcional): sin la llave secreta el pago con tarjeta queda deshabilitado.
+  CULQI_SECRET_KEY: z.string().optional(),
+  CULQI_API_URL: z.string().url().default('https://api.culqi.com/v2'),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -27,4 +30,6 @@ export const env = {
   supabaseUrl: parsed.data.SUPABASE_URL,
   supabaseAnonKey: parsed.data.SUPABASE_ANON_KEY,
   supabaseServiceRoleKey: parsed.data.SUPABASE_SERVICE_ROLE_KEY,
+  culqiSecretKey: parsed.data.CULQI_SECRET_KEY?.trim() || undefined,
+  culqiApiUrl: parsed.data.CULQI_API_URL.replace(/\/$/, ''),
 };

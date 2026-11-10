@@ -9,6 +9,7 @@ import {
   estadoMensualQuerySchema,
   generarMensualidadSchema,
   listarPagosQuerySchema,
+  pagarCulqiSchema,
   pagoIdParamsSchema,
   registrarPagoDirectoSchema,
   registrarPagoSchema,
@@ -74,5 +75,6 @@ router.get('/:id', requireAuth, requireRole('ADM'), validateParams(pagoIdParamsS
 
 mePagosRoutes.get('/', requireAuth, requireRole('ALU'), controller.history);
 mePagosRoutes.get('/actual', requireAuth, requireRole('ALU'), controller.pagoActual);
+mePagosRoutes.post('/culqi', requireAuth, requireRole('ALU'), validateBody(pagarCulqiSchema), controller.pagarCulqi);
 
 export default router;

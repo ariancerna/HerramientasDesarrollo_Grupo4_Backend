@@ -106,6 +106,17 @@ export async function registrarDirecto(req: Request, res: Response, next: NextFu
   }
 }
 
+export async function pagarCulqi(req: Request, res: Response, next: NextFunction) {
+  try {
+    if (!req.user) throw ApiError.unauthorized();
+    const pago = await service.pagarConCulqi(req.user, req.body);
+    await avisarPago(pago as { alumno_id?: string; periodo?: string } | null);
+    ok(res, presentar(pago));
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function marcarPendiente(req: Request, res: Response, next: NextFunction) {
   try {
     ok(res, presentar(await service.marcarPendiente(req.params.id)));
