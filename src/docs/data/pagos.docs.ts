@@ -278,7 +278,7 @@ registerDocs({
       id: 'PAG-12',
       metodo: 'POST',
       ruta: '/me/pagos/culqi',
-      descripcion: 'Paga con tarjeta la mensualidad del alumno autenticado mediante Culqi. El navegador envía el token generado por Culqi Checkout; el importe se toma de la base de datos y el pago queda con método Tarjeta y el id del cargo como código de operación.',
+      descripcion: 'Paga con tarjeta la mensualidad del alumno autenticado mediante Culqi. El navegador envía el token generado por Culqi Checkout; el importe se toma de la base de datos y el pago queda con método Tarjeta y el id del cargo como código de operación. Sin CULQI_SECRET_KEY funciona en modo demostración (tokens tkn_demo_..., cargo chr_demo_..., sin cobro real).',
       acceso: 'ALU',
       implementado: true,
       requestBody: { required: true, content: { 'application/json': { schema: {
@@ -297,7 +297,6 @@ registerDocs({
         '404': { description: 'No hay mensualidad para ese período' },
         '409': { description: 'La mensualidad ya está pagada' },
         '502': { description: 'No se pudo conectar con Culqi' },
-        '503': { description: 'La pasarela no está configurada en el servidor' },
       },
     },
   ],

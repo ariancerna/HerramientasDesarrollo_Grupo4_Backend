@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto';
 import { env } from '../../config/env';
 import { ApiError } from '../errors/api-error';
 
@@ -73,4 +74,31 @@ export function crearPasarelaCulqi(
   }
 
   return { crearCargo };
+}
+
+/** Token que usa el formulario de demostración para simular una tarjeta rechazada. */
+export const TOKEN_DEMO_RECHAZADO = 'tkn_demo_rechazada';
+
+/**
+ * Pasarela de demostración: se usa cuando no hay CULQI_SECRET_KEY.
+ * No contacta a Culqi ni cobra nada; acepta tokens "tkn_demo_..." generados
+ * por el formulario de tarjeta del frontend y devuelve un cargo "chr_demo_...".
+ */
+export function crearPasarelaDemo(generarId = () => randomBytes(8).toString('hex')): PasarelaPago {
+  async function crearCargo(input: CargoCulqiInput): Promise<CargoCulqi> {
+    if (!input.token.startsWith('tkn_demo_')) {
+      throw ApiError.badRequest('Token de pago inválido para el modo demostración');
+    }
+    if (input.token === TOKEN_DEMO_RECHAZADO) {
+      throw new ApiError(402, 'PAGO_RECHAZADO', 'Tu tarjeta fue rechazada por el banco emisor (demostración).');
+    }
+    return { id: `chr_demo_${generarId()}` };
+  }
+
+  return { crearCargo };
+}
+
+/** Culqi real si hay llave secreta; si no, la pasarela de demostración. */
+export function crearPasarelaPago(secretKey = env.culqiSecretKey): PasarelaPago {
+  return secretKey ? crearPasarelaCulqi(secretKey) : crearPasarelaDemo();
 }

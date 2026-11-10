@@ -87,3 +87,17 @@ test('Cliente Culqi envía céntimos y traduce el rechazo en 402 con el mensaje 
   const sinLlave = crearPasarelaCulqi(undefined);
   await assert.rejects(sinLlave.crearCargo({ monto: 1, email: 'a@b.pe', token: 't', descripcion: 'x' }), (e) => e.statusCode === 503);
 });
+
+test('Pasarela demo: aprueba tokens tkn_demo_, simula rechazo y no acepta tokens reales', async () => {
+  const { crearPasarelaDemo, crearPasarelaPago, TOKEN_DEMO_RECHAZADO } = require('../dist/lib/pasarelas/culqi');
+  const demo = crearPasarelaDemo(() => 'abc123');
+  const base = { monto: 180, email: 'a@b.pe', descripcion: 'x' };
+
+  assert.deepEqual(await demo.crearCargo({ ...base, token: 'tkn_demo_4242' }), { id: 'chr_demo_abc123' });
+  await assert.rejects(demo.crearCargo({ ...base, token: TOKEN_DEMO_RECHAZADO }), (e) => e.statusCode === 402);
+  await assert.rejects(demo.crearCargo({ ...base, token: 'tkn_test_real' }), (e) => e.statusCode === 400);
+
+  // Sin llave secreta se usa la demo; con llave, Culqi real.
+  const sinLlave = await crearPasarelaPago(undefined).crearCargo({ ...base, token: 'tkn_demo_1' });
+  assert.match(sinLlave.id, /^chr_demo_[0-9a-f]{16}$/);
+});

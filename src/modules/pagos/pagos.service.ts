@@ -1,7 +1,7 @@
 import { z, ZodError } from 'zod';
 import { ApiError } from '../../lib/errors/api-error';
 import type { AuthUser } from '../../types/express';
-import { crearPasarelaCulqi, type PasarelaPago } from '../../lib/pasarelas/culqi';
+import { crearPasarelaPago, type PasarelaPago } from '../../lib/pasarelas/culqi';
 import * as repository from './pagos.repository';
 import type { CrearPagoRepositoryInput, DetallePagoRegistrado } from './pagos.repository';
 import {
@@ -37,7 +37,7 @@ export function periodoActualEnLima(ahora = new Date()): string {
 export function crearPagosService(
   repo: PagosRepository = repository,
   reloj = () => new Date(),
-  pasarela: PasarelaPago = crearPasarelaCulqi(),
+  pasarela: PasarelaPago = crearPasarelaPago(),
 ) {
   function validar<T>(schema: z.ZodType<T>, value: unknown, mensaje: string): T {
     try {
