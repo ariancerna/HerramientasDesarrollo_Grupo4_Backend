@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { created, ok } from '../../lib/utils/response';
 import * as service from './auth.service';
+import { loginConGoogle, urlAutorizacionGoogle } from './auth.google';
 
 export async function login(req: Request, res: Response, next: NextFunction) {
   try {
@@ -106,6 +107,21 @@ export async function quitarFotoPerfil(req: Request, res: Response, next: NextFu
   try {
     await service.quitarFotoPerfil(req.user!.id);
     res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+}
+
+/** AUTH-12 — URL para iniciar sesión con Google. */
+export function googleUrl(req: Request, res: Response) {
+  ok(res, urlAutorizacionGoogle(String(req.query.redirectTo)));
+}
+
+/** AUTH-13 — Canjea la sesión de Google por la cuenta del club. */
+export async function googleLogin(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { accessToken, refreshToken } = req.body;
+    ok(res, await loginConGoogle(accessToken, refreshToken));
   } catch (err) {
     next(err);
   }

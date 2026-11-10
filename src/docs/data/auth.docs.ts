@@ -5,6 +5,30 @@ registerDocs({
   responsable: 'Eduardo',
   endpoints: [
     { id: 'AUTH-01', metodo: 'POST', ruta: '/auth/login', descripcion: '{usuario, password} → tokens + Usuario', acceso: 'Público', implementado: true },
+    {
+      id: 'AUTH-12', metodo: 'GET', ruta: '/auth/google/url',
+      descripcion: 'Devuelve la URL de Supabase que inicia el acceso con Google y vuelve a redirectTo (debe estar en Authentication > URL Configuration > Redirect URLs).',
+      acceso: 'Público', implementado: true,
+      parameters: [{ name: 'redirectTo', in: 'query', required: true, schema: { type: 'string', format: 'uri', example: 'http://localhost:3000/auth/callback' } }],
+      responses: { '200': { description: 'URL de autorización', content: { 'application/json': { schema: {
+        type: 'object', properties: { data: { type: 'object', properties: { url: { type: 'string', format: 'uri' } } } },
+      } } } } },
+    },
+    {
+      id: 'AUTH-13', metodo: 'POST', ruta: '/auth/google',
+      descripcion: 'Recibe los tokens que Supabase entregó tras autenticar con Google y devuelve la sesión del club. Si el correo ya tiene cuenta entra con su rol; si es de un alumno inscrito sin cuenta, se la crea; si no pertenece al club, se rechaza.',
+      acceso: 'Público', implementado: true,
+      requestBody: { required: true, content: { 'application/json': { schema: {
+        type: 'object', additionalProperties: false, required: ['accessToken', 'refreshToken'],
+        properties: { accessToken: { type: 'string' }, refreshToken: { type: 'string' } },
+      } } } },
+      responses: {
+        '200': { description: 'Sesión iniciada: tokens + Usuario' },
+        '401': { description: 'Token de Google inválido o expirado' },
+        '403': { description: 'Correo no registrado en el club o cuenta deshabilitada' },
+        '409': { description: 'El correo ya tiene una cuenta con otro acceso' },
+      },
+    },
     { id: 'AUTH-02', metodo: 'POST', ruta: '/auth/logout', descripcion: 'Cierra la sesión', acceso: 'Todos', implementado: true },
     { id: 'AUTH-03', metodo: 'POST', ruta: '/auth/refresh', descripcion: 'Renueva el accessToken con el refreshToken', acceso: 'Público', implementado: true },
     { id: 'AUTH-04', metodo: 'GET', ruta: '/auth/me', descripcion: 'Devuelve el usuario de la sesión actual', acceso: 'Todos', implementado: true },

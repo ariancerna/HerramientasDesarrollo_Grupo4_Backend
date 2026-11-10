@@ -6,6 +6,8 @@ import * as controller from './auth.controller';
 import {
   changePasswordSchema,
   forgotPasswordSchema,
+  googleLoginSchema,
+  googleUrlQuerySchema,
   loginSchema,
   refreshSchema,
   registerSchema,
@@ -18,6 +20,9 @@ const router = Router();
 
 // AUTH-01
 router.post('/login', validateBody(loginSchema), controller.login);
+// AUTH-12 / AUTH-13 — inicio de sesión con Google (Supabase OAuth)
+router.get('/google/url', validateQuery(googleUrlQuerySchema), controller.googleUrl);
+router.post('/google', validateBody(googleLoginSchema), controller.googleLogin);
 // AUTH-02
 router.post('/logout', requireAuth, controller.logout);
 // AUTH-03
