@@ -99,6 +99,18 @@ export function urlAutorizacionGoogle(redirectTo: string, supabaseUrl = env.supa
   return { url: url.toString() };
 }
 
+/** Traduce el error de crear_cuenta_alumno a un motivo legible para el usuario. */
+function motivoFalloCuenta(code?: string) {
+  switch (code) {
+    case '23505': return 'ya existe una cuenta con ese usuario o correo';
+    case 'P0001': return 'el correo de la ficha del alumno cambió';
+    case 'P0002': case '23503': return 'la ficha del alumno ya no existe';
+    case 'PGRST202': case '42883': return 'falta la función crear_cuenta_alumno en la base de datos';
+    case '42501': return 'la base de datos no dio permiso para crear la cuenta';
+    default: return `código ${code ?? 'desconocido'}`;
+  }
+}
+
 export function crearLoginGoogle(deps: GoogleDeps = depsSupabase) {
   /** Usuario libre a partir del correo: "ana.torres@gmail.com" → "ana.torres", "ana.torres2"... */
   async function usuarioDisponibleDesde(email: string) {
@@ -144,8 +156,14 @@ export function crearLoginGoogle(deps: GoogleDeps = depsSupabase) {
     const usuario = await usuarioDisponibleDesde(email);
     try {
       await deps.crearCuentaAlumno({ id: usuarioAuth.id, usuario, email: alumno.email, nombre, estudianteId: alumno.id });
-    } catch {
-      return rechazar(usuarioAuth.id, ApiError.conflict('No se pudo crear tu cuenta con Google. Intenta nuevamente.'));
+    } catch (error) {
+      const { code, message, details, hint } = (error ?? {}) as { code?: string; message?: string; details?: string; hint?: string };
+      console.error('AUTH-13 no se pudo crear la cuenta del alumno con Google', {
+        code, message, details, hint, alumnoId: alumno.id, usuario,
+      });
+      return rechazar(usuarioAuth.id, ApiError.conflict(
+        `No se pudo crear tu cuenta con Google (${motivoFalloCuenta(code)}). Intenta nuevamente o avisa a administración.`,
+      ));
     }
     return { id: usuarioAuth.id, usuario, email: alumno.email, nombre, rol: 'ALU', estudiante_id: alumno.id, activo: true };
   }
