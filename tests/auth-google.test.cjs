@@ -78,3 +78,14 @@ test('AUTH-13 token inválido: 401; cuenta deshabilitada: 403 y revoca la sesió
   assert.deepEqual(d.registro.revocados, ['acc']);
   assert.deepEqual(d.registro.eliminados, []);
 });
+
+test('AUTH-13 si falla la creación de la cuenta informa el motivo y limpia el usuario de Google', async (t) => {
+  t.mock.method(console, 'error', () => {});
+  const d = deps({
+    buscarAlumnoSinCuentaPorEmail: async () => ({ id: 'alu-1', nombres: 'Ana', apellidos: 'Torres', email: 'ana@gmail.com' }),
+    crearCuentaAlumno: async () => { throw { code: 'PGRST202', message: 'Could not find the function' }; },
+  });
+  await assert.rejects(crearLoginGoogle(d).login('acc', 'ref'),
+    (e) => e.statusCode === 409 && e.message.includes('falta la función crear_cuenta_alumno'));
+  assert.deepEqual(d.registro.eliminados, ['auth-nuevo']);
+});
