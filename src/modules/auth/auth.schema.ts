@@ -40,3 +40,15 @@ export const usuarioDisponibleSchema = z.object({
 export const refreshSchema = z.object({
   refreshToken: z.string().min(1),
 });
+
+/** AUTH-12 — a dónde vuelve Supabase tras autenticar con Google (debe estar en su lista de Redirect URLs). */
+export const googleUrlQuerySchema = z.object({
+  redirectTo: z.string().url('redirectTo debe ser una URL válida')
+    .refine((valor) => /^https?:\/\//.test(valor), 'redirectTo debe usar http o https'),
+}).strict();
+
+/** AUTH-13 — tokens que Supabase entrega al front después de autenticar con Google. */
+export const googleLoginSchema = z.object({
+  accessToken: z.string().min(1, 'Falta el accessToken'),
+  refreshToken: z.string().min(1, 'Falta el refreshToken'),
+}).strict();
