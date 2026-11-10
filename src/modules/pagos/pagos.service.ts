@@ -1,6 +1,7 @@
 import { z, ZodError } from 'zod';
 import { ApiError } from '../../lib/errors/api-error';
 import type { AuthUser } from '../../types/express';
+import { crearPasarelaPago, type PasarelaPago } from '../../lib/pasarelas/culqi';
 import * as repository from './pagos.repository';
 import type { CrearPagoRepositoryInput, DetallePagoRegistrado } from './pagos.repository';
 import {
@@ -8,6 +9,7 @@ import {
   crearPagoSchema,
   estadoMensualQuerySchema,
   generarMensualidadSchema,
+  pagarCulqiSchema,
   registrarPagoDirectoSchema,
   registrarPagoSchema,
 } from './pagos.schema';
@@ -32,7 +34,11 @@ export function periodoActualEnLima(ahora = new Date()): string {
   return fechaActualEnLima(ahora).periodo;
 }
 
-export function crearPagosService(repo: PagosRepository = repository, reloj = () => new Date()) {
+export function crearPagosService(
+  repo: PagosRepository = repository,
+  reloj = () => new Date(),
+  pasarela: PasarelaPago = crearPasarelaPago(),
+) {
   function validar<T>(schema: z.ZodType<T>, value: unknown, mensaje: string): T {
     try {
       return schema.parse(value);
@@ -182,6 +188,61 @@ export function crearPagosService(repo: PagosRepository = repository, reloj = ()
     }
   }
 
+  /**
+   * PAG-12: el alumno paga su mensualidad con tarjeta vía Culqi.
+   * El importe siempre sale de la base de datos (nunca del navegador) y solo
+   * se marca como pagado después de que Culqi confirme el cargo.
+   */
+  async function pagarConCulqi(usuario: AuthUser, payload: unknown) {
+    if (!usuario.estudianteId) {
+      throw ApiError.forbidden('Tu cuenta no tiene un alumno vinculado. Contacta a un administrador.');
+    }
+    const datos = validar(pagarCulqiSchema, payload, 'Datos inválidos');
+    const estudianteId = usuario.estudianteId;
+    const existente = await repo.findCurrentForStudent(estudianteId, datos.periodo);
+
+    if (existente?.estado === 'pagado') {
+      throw ApiError.conflict('Esta mensualidad ya fue pagada');
+    }
+    if (!existente && datos.periodo !== fechaActualEnLima(reloj()).periodo) {
+      throw ApiError.notFound('No hay una mensualidad registrada para ese período');
+    }
+
+    const valores = existente ? null : await valoresClub(datos.periodo);
+    const monto = existente ? Number(existente.monto) : valores?.monto;
+    if (!monto || monto <= 0) {
+      throw ApiError.unprocessable('No se pudo determinar el importe de la mensualidad');
+    }
+
+    const cargo = await pasarela.crearCargo({
+      monto,
+      email: datos.email,
+      token: datos.token,
+      descripcion: `Mensualidad ${datos.periodo}`,
+      metadata: { estudianteId, periodo: datos.periodo },
+    });
+
+    const detalle: DetallePagoRegistrado = {
+      estado: 'pagado',
+      fechaPago: fechaActualEnLima(reloj()).fecha,
+      metodoPago: 'Tarjeta',
+      codigoOperacion: cargo.id,
+    };
+
+    if (existente) return repo.updatePaymentDetails(existente.id, detalle);
+
+    return repo.create({
+      estudianteId,
+      periodo: datos.periodo,
+      ...valores,
+      monto,
+      estado: 'pagado',
+      fechaPago: detalle.fechaPago,
+      metodoPago: 'Tarjeta',
+      codigoOperacion: cargo.id,
+    });
+  }
+
   async function marcarPendiente(id: string) {
     return repo.updatePaymentDetails(id, {
       estado: 'pendiente',
@@ -217,6 +278,7 @@ export function crearPagosService(repo: PagosRepository = repository, reloj = ()
     update,
     registrarPorId,
     registrarDirecto,
+    pagarConCulqi,
     marcarPendiente,
     generarMensualidad,
     remove,
@@ -233,6 +295,7 @@ export const {
   update,
   registrarPorId,
   registrarDirecto,
+  pagarConCulqi,
   marcarPendiente,
   generarMensualidad,
   remove,

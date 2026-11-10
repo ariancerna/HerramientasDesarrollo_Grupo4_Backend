@@ -5,7 +5,7 @@ const uuidSchema = { type: 'string', format: 'uuid' };
 const fechaSchema = { type: 'string', format: 'date', example: '2026-10-31' };
 const metodoPagoSchema = {
   type: 'string',
-  enum: ['Yape', 'Plin', 'Transferencia', 'Efectivo'],
+  enum: ['Yape', 'Plin', 'Transferencia', 'Efectivo', 'Tarjeta'],
 };
 
 const pagoSchema = {
@@ -272,6 +272,31 @@ registerDocs({
             properties: { data: { ...pagoSchema, nullable: true } },
           } } },
         },
+      },
+    },
+    {
+      id: 'PAG-12',
+      metodo: 'POST',
+      ruta: '/me/pagos/culqi',
+      descripcion: 'Paga con tarjeta la mensualidad del alumno autenticado mediante Culqi. El navegador envía el token generado por Culqi Checkout; el importe se toma de la base de datos y el pago queda con método Tarjeta y el id del cargo como código de operación. Sin CULQI_SECRET_KEY funciona en modo demostración (tokens tkn_demo_..., cargo chr_demo_..., sin cobro real).',
+      acceso: 'ALU',
+      implementado: true,
+      requestBody: { required: true, content: { 'application/json': { schema: {
+        type: 'object',
+        required: ['token', 'email', 'periodo'],
+        properties: {
+          token: { type: 'string', example: 'tkn_test_xxxxxxxxxxxx' },
+          email: { type: 'string', format: 'email' },
+          periodo: periodoSchema,
+        },
+        additionalProperties: false,
+      } } } },
+      responses: {
+        '200': { description: 'Pago aprobado y registrado', content: { 'application/json': { schema: respuestaPago } } },
+        '402': { description: 'La pasarela rechazó la tarjeta' },
+        '404': { description: 'No hay mensualidad para ese período' },
+        '409': { description: 'La mensualidad ya está pagada' },
+        '502': { description: 'No se pudo conectar con Culqi' },
       },
     },
   ],

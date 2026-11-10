@@ -5,7 +5,7 @@ const uuidSchema = z.string().uuid('Debe ser un UUID válido');
 const montoSchema = z.number().positive('El monto debe ser mayor que cero').finite('El monto debe ser finito');
 const fechaSchema = z.string().date('La fecha debe ser válida y tener formato AAAA-MM-DD');
 
-export const metodoPagoSchema = z.enum(['Yape', 'Plin', 'Transferencia', 'Efectivo']);
+export const metodoPagoSchema = z.enum(['Yape', 'Plin', 'Transferencia', 'Efectivo', 'Tarjeta']);
 
 export const crearPagoSchema = z.object({
   estudianteId: uuidSchema,
@@ -51,6 +51,13 @@ export const actualizarPagoSchema = z.object({
   monto: montoSchema.optional(),
   vencimiento: fechaSchema.nullable().optional(),
 }).strict().refine((payload) => Object.keys(payload).length > 0, 'Debes indicar al menos un campo para actualizar');
+
+/** Pago en línea del alumno: el token lo genera Culqi Checkout en el navegador. */
+export const pagarCulqiSchema = z.object({
+  token: z.string().trim().min(1, 'Falta el token de la tarjeta').max(100),
+  email: z.string().trim().email('Correo inválido'),
+  periodo: periodoSchema,
+}).strict();
 
 export type CrearPagoInput = z.infer<typeof crearPagoSchema>;
 export type EstadoMensualQuery = z.infer<typeof estadoMensualQuerySchema>;
