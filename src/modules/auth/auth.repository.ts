@@ -149,6 +149,37 @@ export async function marcarResetTokenUsado(id: string) {
   await supabaseAdmin.from('password_reset_tokens').update({ usado: true }).eq('id', id);
 }
 
+// ---------- Recuperación con el correo de Supabase Auth (SMTP del proyecto, p. ej. Gmail) ----------
+
+/**
+ * Pide a Supabase que envíe el correo "Reset Password" del proyecto. La plantilla
+ * debe incluir {{ .Token }} para que el usuario reciba el código de 6 dígitos.
+ */
+export async function enviarCodigoSupabase(email: string) {
+  const { error } = await crearClienteAuthAislado().auth.resetPasswordForEmail(email);
+  if (!error) return;
+  if (error.status === 429 || error.code === 'over_email_send_rate_limit') {
+    throw new ApiError(429, 'TOO_MANY_REQUESTS', 'Ya te enviamos un código hace poco. Espera un minuto antes de pedir otro.');
+  }
+  console.error('Supabase no pudo enviar el correo de recuperación', { status: error.status, code: error.code, message: error.message });
+  throw new ApiError(502, 'CORREO_NO_ENVIADO', 'No se pudo enviar el correo. Revisa la configuración SMTP de Supabase o intenta más tarde.');
+}
+
+/** Verifica el código de recuperación de Supabase: 'ok' | 'invalido' | 'bloqueado'. */
+export async function verificarCodigoSupabase(email: string, codigo: string): Promise<'ok' | 'invalido' | 'bloqueado'> {
+  const { data, error } = await crearClienteAuthAislado().auth.verifyOtp({ email, token: codigo, type: 'recovery' });
+  if (error) return error.status === 429 ? 'bloqueado' : 'invalido';
+  // verifyOtp abre una sesión que no se usa: el cambio se hace con nuestro resetToken.
+  if (data.session) {
+    try {
+      await supabaseAdmin.auth.admin.signOut(data.session.access_token);
+    } catch {
+      console.error('No se pudo cerrar la sesión temporal de recuperación');
+    }
+  }
+  return 'ok';
+}
+
 /** Búsqueda sin distinguir mayúsculas: "Ana@Gmail.com" y "ana@gmail.com" son la misma cuenta. */
 export async function obtenerUsuarioPorEmail(email: string) {
   const patron = email.trim().replace(/[\\%_]/g, '\\$&');

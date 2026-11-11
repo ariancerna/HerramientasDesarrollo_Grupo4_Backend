@@ -98,3 +98,51 @@ test('Correo: Brevo y Resend arman la petición correcta y los rechazos dan 502'
   await assert.rejects(correoLib.enviarCorreo(correo, { remitenteNombre: 'C' }, fetchOk), (e) => e.statusCode === 503);
   await assert.rejects(correoLib.enviarCorreo(correo, { brevoApiKey: 'k', remitenteNombre: 'C' }, fetchOk), (e) => e.statusCode === 503);
 });
+
+const config = require('../dist/config/supabase');
+
+test('Modo Supabase: sin Brevo/Resend, Supabase envía el correo y valida el código', async (t) => {
+  t.mock.method(correoLib, 'hayProveedorCorreo', () => false);
+  const enviados = [];
+  t.mock.method(repository, 'obtenerUsuarioPorEmail', async () => ({ id: 'u1', email: 'ana@gmail.com', activo: true }));
+  t.mock.method(repository, 'enviarCodigoSupabase', async (e) => { enviados.push(e); });
+  const guardar = t.mock.method(repository, 'guardarCodigoRecuperacion', async () => {});
+  await service.forgotPassword('ANA@gmail.com');
+  assert.deepEqual(enviados, ['ana@gmail.com']);
+  assert.equal(guardar.mock.callCount(), 0);
+
+  t.mock.method(repository, 'verificarCodigoSupabase', async (e, c) => (c === '654321' ? 'ok' : 'invalido'));
+  t.mock.method(repository, 'guardarResetToken', async () => 'token-1');
+  assert.deepEqual(await service.verifyCode('ana@gmail.com', '654321'), { resetToken: 'token-1' });
+  await assert.rejects(service.verifyCode('ana@gmail.com', '000000'), (e) => e.statusCode === 400);
+});
+
+test('Modo Supabase: repositorio llama a resetPasswordForEmail / verifyOtp y traduce errores', async (t) => {
+  t.mock.method(console, 'error', () => {});
+  const llamadas = [];
+  let respuestaReset = { error: null };
+  let respuestaOtp = { data: { session: { access_token: 'tmp' } }, error: null };
+  t.mock.method(config, 'crearClienteAuthAislado', () => ({ auth: {
+    resetPasswordForEmail: async (email) => { llamadas.push(['reset', email]); return respuestaReset; },
+    verifyOtp: async (body) => { llamadas.push(['otp', body]); return respuestaOtp; },
+  } }));
+  t.mock.method(config.supabaseAdmin.auth.admin, 'signOut', async (tok) => { llamadas.push(['signout', tok]); return { error: null }; });
+
+  await repository.enviarCodigoSupabase('ana@gmail.com');
+  assert.equal(await repository.verificarCodigoSupabase('ana@gmail.com', '123456'), 'ok');
+  assert.deepEqual(llamadas, [
+    ['reset', 'ana@gmail.com'],
+    ['otp', { email: 'ana@gmail.com', token: '123456', type: 'recovery' }],
+    ['signout', 'tmp'],
+  ]);
+
+  respuestaOtp = { data: { session: null }, error: { status: 403, code: 'otp_expired' } };
+  assert.equal(await repository.verificarCodigoSupabase('ana@gmail.com', '1'), 'invalido');
+  respuestaOtp = { data: { session: null }, error: { status: 429 } };
+  assert.equal(await repository.verificarCodigoSupabase('ana@gmail.com', '1'), 'bloqueado');
+
+  respuestaReset = { error: { status: 429, code: 'over_email_send_rate_limit' } };
+  await assert.rejects(repository.enviarCodigoSupabase('a@b.pe'), (e) => e.statusCode === 429);
+  respuestaReset = { error: { status: 500, code: 'unexpected_failure', message: 'Error sending recovery email' } };
+  await assert.rejects(repository.enviarCodigoSupabase('a@b.pe'), (e) => e.statusCode === 502);
+});
