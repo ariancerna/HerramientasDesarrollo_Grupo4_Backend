@@ -13,6 +13,11 @@ const envSchema = z.object({
   // Pasarela Culqi (opcional): sin la llave secreta el pago con tarjeta queda deshabilitado.
   CULQI_SECRET_KEY: z.string().optional(),
   CULQI_API_URL: z.string().url().default('https://api.culqi.com/v2'),
+  // Envío de correos (recuperar contraseña). Basta con UNA de las dos llaves.
+  BREVO_API_KEY: z.string().optional(),
+  RESEND_API_KEY: z.string().optional(),
+  CORREO_REMITENTE: z.string().optional(),
+  CORREO_REMITENTE_NOMBRE: z.string().default('El Golazo Club'),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -32,4 +37,8 @@ export const env = {
   supabaseServiceRoleKey: parsed.data.SUPABASE_SERVICE_ROLE_KEY,
   culqiSecretKey: parsed.data.CULQI_SECRET_KEY?.trim() || undefined,
   culqiApiUrl: parsed.data.CULQI_API_URL.replace(/\/$/, ''),
+  brevoApiKey: parsed.data.BREVO_API_KEY?.trim() || undefined,
+  resendApiKey: parsed.data.RESEND_API_KEY?.trim() || undefined,
+  correoRemitente: parsed.data.CORREO_REMITENTE?.trim() || undefined,
+  correoRemitenteNombre: parsed.data.CORREO_REMITENTE_NOMBRE.trim(),
 };
