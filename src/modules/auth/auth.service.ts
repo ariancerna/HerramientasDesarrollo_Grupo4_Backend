@@ -1,6 +1,8 @@
 import { randomInt } from 'node:crypto';
 import { env } from '../../config/env';
 import { ApiError } from '../../lib/errors/api-error';
+import { enviarCorreo, hayProveedorCorreo } from '../../lib/correo/correo';
+import { correoCodigoRecuperacion } from '../../lib/correo/plantillas';
 import * as repository from './auth.repository';
 import { crearCuentaParaAlumno } from '../usuarios/usuarios.service';
 
@@ -68,27 +70,55 @@ export async function register(dni: string, usuario: string, password: string) {
 }
 
 /** AUTH-07 — Siempre responde igual exista o no el correo (no revela cuentas). */
-export async function forgotPassword(correo: string) {
+const MINUTOS_VIGENCIA_CODIGO = 10;
+const normalizarCorreo = (correo: string) => correo.trim().toLowerCase();
+
+/**
+ * AUTH-07 — Envía al correo un código de 6 dígitos para recuperar la contraseña.
+ * La respuesta es siempre la misma exista o no la cuenta, para no revelar qué
+ * correos están registrados.
+ */
+export async function forgotPassword(correoIngresado: string) {
+  const correo = normalizarCorreo(correoIngresado);
   const respuesta = { mensaje: 'Si el correo está registrado, te enviamos un código de verificación.' };
-  // Cooldown de 30 s por correo y solo para cuentas existentes (la respuesta es siempre la misma).
-  if (await repository.codigoReciente(correo, 30) || !await repository.obtenerUsuarioPorEmail(correo)) {
-    return respuesta;
-  }
+
+  // Cooldown de 30 s por correo y solo para cuentas existentes y activas.
+  if (await repository.codigoReciente(correo, 30)) return respuesta;
+  const usuario = await repository.obtenerUsuarioPorEmail(correo);
+  if (!usuario || usuario.activo === false) return respuesta;
+
   const codigo = String(randomInt(100000, 1000000));
   await repository.invalidarCodigos(correo);
   await repository.guardarCodigoRecuperacion(correo, codigo);
 
-  // TODO: integrar un proveedor real de correo (Resend, SendGrid, etc.).
-  // Mientras tanto se muestra en la consola, nunca en producción.
-  if (env.nodeEnv !== 'production') console.log(`📧 [DEV] Código de recuperación para ${correo}: ${codigo}`);
+  if (!hayProveedorCorreo() && env.nodeEnv !== 'production') {
+    // Desarrollo local sin Brevo/Resend: el código se muestra solo en la consola.
+    console.log(`📧 [DEV] Código de recuperación para ${correo}: ${codigo}`);
+    return respuesta;
+  }
+
+  try {
+    await enviarCorreo(correoCodigoRecuperacion({
+      para: correo,
+      nombre: usuario.nombre,
+      codigo,
+      minutosVigencia: MINUTOS_VIGENCIA_CODIGO,
+      club: env.correoRemitenteNombre,
+    }));
+  } catch (error) {
+    // Si el correo no salió, el código no sirve: se anula para poder pedir otro sin esperar.
+    await repository.invalidarCodigos(correo);
+    throw error;
+  }
 
   return respuesta;
 }
 
 /** AUTH-08 — Valida el código y entrega un resetToken de corta duración. */
-export async function verifyCode(correo: string, codigo: string) {
+export async function verifyCode(correoIngresado: string, codigo: string) {
+  const correo = normalizarCorreo(correoIngresado);
   // Máximo 5 intentos por código; al agotarlos hay que pedir uno nuevo (AUTH-07).
-  const resultado = await repository.verificarCodigo(correo, codigo);
+  const resultado = await repository.verificarCodigo(correo, codigo.trim());
   if (resultado === 'bloqueado') {
     throw new ApiError(429, 'TOO_MANY_REQUESTS', 'Demasiados intentos. Solicita un nuevo código.');
   }
@@ -106,8 +136,18 @@ export async function resetPassword(resetToken: string, nuevaPassword: string) {
   const usuario = await repository.obtenerUsuarioPorEmail(fila.correo);
   if (!usuario) throw ApiError.notFound('No encontramos una cuenta con ese correo.');
 
-  await repository.actualizarPasswordAuth(usuario.id, nuevaPassword);
+  try {
+    await repository.actualizarPasswordAuth(usuario.id, nuevaPassword);
+  } catch (error) {
+    // Supabase rechaza contraseñas que no cumplen su política (p. ej. muy débiles).
+    const { status, message } = (error ?? {}) as { status?: number; message?: string };
+    if (status === 400 || status === 422) {
+      throw ApiError.badRequest(`La contraseña no es válida: ${message ?? 'elige una más segura'}.`);
+    }
+    throw error;
+  }
   await repository.marcarResetTokenUsado(fila.id);
+  await repository.invalidarCodigos(fila.correo);
 
   return { mensaje: 'Contraseña actualizada correctamente.' };
 }

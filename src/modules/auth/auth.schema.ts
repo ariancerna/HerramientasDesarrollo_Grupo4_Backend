@@ -11,13 +11,17 @@ export const registerSchema = z.object({
   password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
 }).strict();
 
+// El correo se normaliza (sin espacios y en minúsculas) para que el código
+// se guarde y se verifique siempre con la misma clave.
+const correoRecuperacion = z.string().trim().toLowerCase().email('Ingresa un correo válido');
+
 export const forgotPasswordSchema = z.object({
-  correo: z.string().email(),
+  correo: correoRecuperacion,
 });
 
 export const verifyCodeSchema = z.object({
-  correo: z.string().email(),
-  codigo: z.string().length(6),
+  correo: correoRecuperacion,
+  codigo: z.string().trim().regex(/^\d{6}$/, 'El código debe tener 6 dígitos'),
 });
 
 export const resetPasswordSchema = z.object({

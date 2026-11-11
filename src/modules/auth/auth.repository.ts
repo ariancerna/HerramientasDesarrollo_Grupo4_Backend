@@ -103,7 +103,8 @@ export async function guardarCodigoRecuperacion(correo: string, codigo: string) 
 
 export async function codigoReciente(correo: string, segundos: number) {
   const { data, error } = await supabaseAdmin.from('codigos_recuperacion').select('id')
-    .eq('correo', correo).gte('created_at', new Date(Date.now() - segundos * 1000).toISOString()).limit(1);
+    .eq('correo', correo).eq('usado', false)
+    .gte('created_at', new Date(Date.now() - segundos * 1000).toISOString()).limit(1);
   if (error) throw error;
   return (data ?? []).length > 0;
 }
@@ -148,8 +149,11 @@ export async function marcarResetTokenUsado(id: string) {
   await supabaseAdmin.from('password_reset_tokens').update({ usado: true }).eq('id', id);
 }
 
+/** Búsqueda sin distinguir mayúsculas: "Ana@Gmail.com" y "ana@gmail.com" son la misma cuenta. */
 export async function obtenerUsuarioPorEmail(email: string) {
-  const { data } = await supabaseAdmin.from('usuarios').select('*').eq('email', email).maybeSingle();
+  const patron = email.trim().replace(/[\\%_]/g, '\\$&');
+  const { data, error } = await supabaseAdmin.from('usuarios').select('*').ilike('email', patron).limit(1).maybeSingle();
+  if (error) throw error;
   return data;
 }
 
