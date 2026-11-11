@@ -77,10 +77,22 @@ const normalizarCorreo = (correo: string) => correo.trim().toLowerCase();
  * AUTH-07 — Envía al correo un código de 6 dígitos para recuperar la contraseña.
  * La respuesta es siempre la misma exista o no la cuenta, para no revelar qué
  * correos están registrados.
+ *
+ * Quién envía el correo:
+ * - Con BREVO_API_KEY o RESEND_API_KEY: el backend genera el código y lo envía por esa API.
+ * - Sin ellas: Supabase Auth envía su correo "Reset Password" con el SMTP del
+ *   proyecto (por ejemplo Gmail), y el código lo genera y valida Supabase.
  */
 export async function forgotPassword(correoIngresado: string) {
   const correo = normalizarCorreo(correoIngresado);
   const respuesta = { mensaje: 'Si el correo está registrado, te enviamos un código de verificación.' };
+
+  if (!hayProveedorCorreo()) {
+    const usuario = await repository.obtenerUsuarioPorEmail(correo);
+    if (!usuario || usuario.activo === false) return respuesta;
+    await repository.enviarCodigoSupabase(usuario.email);
+    return respuesta;
+  }
 
   // Cooldown de 30 s por correo y solo para cuentas existentes y activas.
   if (await repository.codigoReciente(correo, 30)) return respuesta;
@@ -90,12 +102,6 @@ export async function forgotPassword(correoIngresado: string) {
   const codigo = String(randomInt(100000, 1000000));
   await repository.invalidarCodigos(correo);
   await repository.guardarCodigoRecuperacion(correo, codigo);
-
-  if (!hayProveedorCorreo() && env.nodeEnv !== 'production') {
-    // Desarrollo local sin Brevo/Resend: el código se muestra solo en la consola.
-    console.log(`📧 [DEV] Código de recuperación para ${correo}: ${codigo}`);
-    return respuesta;
-  }
 
   try {
     await enviarCorreo(correoCodigoRecuperacion({
@@ -118,7 +124,9 @@ export async function forgotPassword(correoIngresado: string) {
 export async function verifyCode(correoIngresado: string, codigo: string) {
   const correo = normalizarCorreo(correoIngresado);
   // Máximo 5 intentos por código; al agotarlos hay que pedir uno nuevo (AUTH-07).
-  const resultado = await repository.verificarCodigo(correo, codigo.trim());
+  const resultado = hayProveedorCorreo()
+    ? await repository.verificarCodigo(correo, codigo.trim())
+    : await repository.verificarCodigoSupabase(correo, codigo.trim());
   if (resultado === 'bloqueado') {
     throw new ApiError(429, 'TOO_MANY_REQUESTS', 'Demasiados intentos. Solicita un nuevo código.');
   }
@@ -135,6 +143,7 @@ export async function resetPassword(resetToken: string, nuevaPassword: string) {
 
   const usuario = await repository.obtenerUsuarioPorEmail(fila.correo);
   if (!usuario) throw ApiError.notFound('No encontramos una cuenta con ese correo.');
+  if (usuario.activo === false) throw ApiError.forbidden('Tu cuenta está deshabilitada.');
 
   try {
     await repository.actualizarPasswordAuth(usuario.id, nuevaPassword);

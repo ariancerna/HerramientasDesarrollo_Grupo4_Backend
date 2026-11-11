@@ -175,6 +175,8 @@ test('CFG-03: los cargos usan el monto y el día de vencimiento del club si no s
 test('AUTH-08 responde 429 al agotar intentos y 400 si el código no sirve', async (t) => {
   const authRepo = require('../dist/modules/auth/auth.repository');
   const auth = require('../dist/modules/auth/auth.service');
+  // Modo con código propio (Brevo/Resend configurado).
+  t.mock.method(require('../dist/lib/correo/correo'), 'hayProveedorCorreo', () => true);
   const verificar = t.mock.method(authRepo, 'verificarCodigo', async () => 'bloqueado');
   const token = t.mock.method(authRepo, 'guardarResetToken', async () => 'token');
   await assert.rejects(auth.verifyCode('a@example.invalid', '000000'), { statusCode: 429 });
