@@ -77,7 +77,7 @@ test('AUTH-07/08 normaliza el correo y valida el formato del código', () => {
 test('Correo: Brevo y Resend arman la petición correcta y los rechazos dan 502', async (t) => {
   t.mock.method(console, 'error', () => {});
   const correo = correoCodigoRecuperacion({ para: 'ana@gmail.com', nombre: 'Ana Torres', codigo: '123456', minutosVigencia: 10, club: 'El <Golazo> Club' });
-  assert.match(correo.asunto, /^123456 /);
+  assert.match(correo.asunto, /123456$/);
   assert.ok(correo.html.includes('El &lt;Golazo&gt; Club') && correo.html.includes('Hola, Ana:'));
 
   let peticion;
@@ -113,7 +113,8 @@ test('Modo Supabase: sin Brevo/Resend, Supabase envía el correo y valida el có
 
   t.mock.method(repository, 'verificarCodigoSupabase', async (e, c) => (c === '654321' ? 'ok' : 'invalido'));
   t.mock.method(repository, 'guardarResetToken', async () => 'token-1');
-  assert.deepEqual(await service.verifyCode('ana@gmail.com', '654321'), { resetToken: 'token-1' });
+  t.mock.method(repository, 'obtenerUsuarioPorEmail', async () => ({ id: 'u1', usuario: 'ana.torres', email: 'ana@gmail.com', activo: true }));
+  assert.deepEqual(await service.verifyCode('ana@gmail.com', '654321'), { resetToken: 'token-1', usuario: 'ana.torres' });
   await assert.rejects(service.verifyCode('ana@gmail.com', '000000'), (e) => e.statusCode === 400);
 });
 

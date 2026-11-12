@@ -35,7 +35,7 @@ registerDocs({
     { id: 'AUTH-06', metodo: 'GET', ruta: '/auth/usuario-disponible', descripcion: '¿El nombre de usuario está libre?', acceso: 'Público', implementado: true },
     { id: 'AUTH-05', metodo: 'POST', ruta: '/auth/register', descripcion: '{dni, usuario, password} → crea credenciales para un alumno ya existente', acceso: 'Público', implementado: true },
     { id: 'AUTH-07', metodo: 'POST', ruta: '/auth/password/forgot', descripcion: '{correo} → envía código de 6 dígitos', acceso: 'Público', implementado: true },
-    { id: 'AUTH-08', metodo: 'POST', ruta: '/auth/password/verify', descripcion: '{correo, codigo} → devuelve resetToken', acceso: 'Público', implementado: true },
+    { id: 'AUTH-08', metodo: 'POST', ruta: '/auth/password/verify', descripcion: '{correo, codigo} → devuelve resetToken y el nombre de usuario de la cuenta', acceso: 'Público', implementado: true },
     { id: 'AUTH-09', metodo: 'POST', ruta: '/auth/password/reset', descripcion: '{resetToken, nuevaPassword} → cambia la clave', acceso: 'Público', implementado: true },
     {
       id: 'AUTH-10', metodo: 'PATCH', ruta: '/auth/password',

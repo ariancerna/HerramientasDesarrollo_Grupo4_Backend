@@ -133,7 +133,9 @@ export async function verifyCode(correoIngresado: string, codigo: string) {
   if (resultado !== 'ok') throw ApiError.badRequest('El código es inválido o ya expiró.');
 
   const resetToken = await repository.guardarResetToken(correo);
-  return { resetToken };
+  // Quien ya demostró ser dueño del correo puede ver su nombre de usuario (solo lectura en el front).
+  const cuenta = await repository.obtenerUsuarioPorEmail(correo);
+  return cuenta?.usuario ? { resetToken, usuario: cuenta.usuario as string } : { resetToken };
 }
 
 /** AUTH-09 — Cambia la contraseña usando el resetToken de verifyCode. */

@@ -14,25 +14,71 @@ export function correoCodigoRecuperacion(opciones: {
 }): Correo {
   const club = escaparHtml(opciones.club);
   const saludo = opciones.nombre ? `Hola, ${escaparHtml(opciones.nombre.split(' ')[0] ?? opciones.nombre)}:` : 'Hola:';
-  const asunto = `${opciones.codigo} es tu código para recuperar tu contraseña`;
+  const asunto = `Tu código para restablecer tu contraseña: ${opciones.codigo}`;
 
   const html = `<!doctype html>
-<html lang="es"><body style="margin:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;color:#0f172a">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 16px">
-    <tr><td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:16px;overflow:hidden">
-        <tr><td style="background:#0b1b3a;padding:24px 28px;color:#ffffff;font-size:18px;font-weight:bold">${club}</td></tr>
-        <tr><td style="padding:28px">
-          <p style="margin:0 0 12px;font-size:15px">${saludo}</p>
-          <p style="margin:0 0 20px;font-size:15px;line-height:22px">Recibimos una solicitud para restablecer la contraseña de tu cuenta. Ingresa este código en la pantalla de recuperación:</p>
-          <p style="margin:0 0 20px;text-align:center;font-size:34px;font-weight:bold;letter-spacing:10px;color:#1e3a8a;background:#eff6ff;border-radius:12px;padding:16px 0">${opciones.codigo}</p>
-          <p style="margin:0 0 8px;font-size:13px;color:#475569">El código vence en ${opciones.minutosVigencia} minutos y solo puede usarse una vez.</p>
-          <p style="margin:0;font-size:13px;color:#475569">Si no pediste cambiar tu contraseña, ignora este correo: tu cuenta sigue segura.</p>
-        </td></tr>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light only">
+<title>Restablece tu contraseña</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f4f6f9;">
+<div style="display:none;max-height:0;overflow:hidden;">Tu código para restablecer la contraseña es ${opciones.codigo}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f4f6f9;">
+  <tr>
+    <td align="center" style="padding:40px 16px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:480px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+
+        <tr>
+          <td style="padding:0 4px 20px;">
+            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="vertical-align:middle;padding-right:10px;">
+                  <img src="https://voleyclub.vercel.app/logo-el-golazo-club.jpg" width="36" height="36" alt="" style="display:block;width:36px;height:36px;border-radius:50%;">
+                </td>
+                <td style="vertical-align:middle;font-size:16px;font-weight:700;color:#0b1b3a;">${club}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="background-color:#ffffff;border:1px solid #e3e8f0;border-radius:10px;padding:36px 36px 32px;">
+            <p style="margin:0 0 16px;font-size:20px;line-height:28px;font-weight:600;color:#0f172a;">Restablece tu contraseña</p>
+            <p style="margin:0 0 12px;font-size:15px;line-height:24px;color:#475569;">${saludo}</p>
+            <p style="margin:0 0 24px;font-size:15px;line-height:24px;color:#475569;">Recibimos una solicitud para cambiar la contraseña de tu cuenta. Usa este código para continuar:</p>
+
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" style="background-color:#f4f6f9;border-radius:8px;padding:18px 0;font-family:'SFMono-Regular',Menlo,Consolas,'Courier New',monospace;font-size:30px;line-height:36px;font-weight:700;letter-spacing:8px;color:#0b1b3a;">${opciones.codigo}</td>
+              </tr>
+            </table>
+
+            <p style="margin:20px 0 0;font-size:13px;line-height:20px;color:#64748b;">El código vence en ${opciones.minutosVigencia} minutos.</p>
+
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 0;">
+              <tr><td style="border-top:1px solid #e3e8f0;font-size:0;line-height:0;height:1px;">&nbsp;</td></tr>
+            </table>
+
+            <p style="margin:20px 0 0;font-size:13px;line-height:20px;color:#64748b;">Si no solicitaste este cambio, puedes ignorar este correo. Tu contraseña actual seguirá funcionando.</p>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="padding:24px 4px 0;font-size:12px;line-height:19px;color:#94a3b8;">
+            ${club} · Club Deportivo Cultural<br>
+            Plaza Cívica Pro, Los Olivos · 994 796 381 · 998 678 259
+          </td>
+        </tr>
+
       </table>
-    </td></tr>
-  </table>
-</body></html>`;
+    </td>
+  </tr>
+</table>
+</body>
+</html>`;
 
   const texto = [
     opciones.nombre ? `Hola, ${opciones.nombre.split(' ')[0]}:` : 'Hola:',
