@@ -2,6 +2,8 @@ import { supabaseAdmin } from '../../config/supabase';
 import { ApiError } from '../../lib/errors/api-error';
 
 const TABLE = 'alumnos';
+/** Fila del alumno con el nombre de su categoría (presentAlumno lo expone como `categoria`). */
+const CON_CATEGORIA = '*, categorias(*)';
 
 /** Contrato del front (Student): camelCase y categoría por id + nombre (regla #7). */
 export function presentAlumno(row: Record<string, any> | null) {
@@ -38,7 +40,7 @@ export async function findCategoriaIdsByProfesor(profesorId?: string) {
 export async function findAll(filters: Record<string, unknown> = {}) {
   let query = supabaseAdmin
     .from(TABLE)
-    .select('*, categorias(*)', { count: 'exact' });
+    .select(CON_CATEGORIA, { count: 'exact' });
 
   if (typeof filters.texto === 'string' && filters.texto.trim()) {
     const literal = filters.texto.trim().replace(/[\\%_]/g, '\\$&');
@@ -81,7 +83,7 @@ export async function findAll(filters: Record<string, unknown> = {}) {
 }
 
 export async function findById(id: string) {
-  const { data, error } = await supabaseAdmin.from(TABLE).select('*').eq('id', id).single();
+  const { data, error } = await supabaseAdmin.from(TABLE).select(CON_CATEGORIA).eq('id', id).single();
 
   if (error) {
     if (error.code === 'PGRST116') return null;
@@ -94,7 +96,7 @@ export async function findById(id: string) {
 export async function findByDni(dni: string) {
   const { data, error } = await supabaseAdmin
     .from(TABLE)
-    .select('*')
+    .select(CON_CATEGORIA)
     .eq('dni', dni)
     .maybeSingle();
 
@@ -187,13 +189,13 @@ export async function findCategoriaById(id: string) {
 }
 
 export async function create(payload: Record<string, unknown>) {
-  const { data, error } = await supabaseAdmin.from(TABLE).insert(payload).select().single();
+  const { data, error } = await supabaseAdmin.from(TABLE).insert(payload).select(CON_CATEGORIA).single();
   if (error) throw error;
   return data;
 }
 
 export async function update(id: string, payload: Record<string, unknown>) {
-  const { data, error } = await supabaseAdmin.from(TABLE).update(payload).eq('id', id).select().single();
+  const { data, error } = await supabaseAdmin.from(TABLE).update(payload).eq('id', id).select(CON_CATEGORIA).single();
   if (error) throw error;
   return data;
 }
