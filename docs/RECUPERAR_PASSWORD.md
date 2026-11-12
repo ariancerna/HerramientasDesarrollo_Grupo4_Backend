@@ -23,7 +23,7 @@ El correo se normaliza (sin espacios, en minúsculas), así que `Ana@Gmail.com` 
 2. **Supabase → Authentication → Emails → SMTP Settings** → *Enable custom SMTP*:
    - Sender email: tu Gmail · Sender name: `El Golazo Club`
    - Host: `smtp.gmail.com` · Port: `465` · Username: tu Gmail · Password: la contraseña de aplicación
-3. **Supabase → Authentication → Emails → Templates → Reset Password**: el correo debe mostrar el código `{{ .Token }}` (la plantilla por defecto solo trae un enlace). Asunto sugerido: `Tu código para recuperar tu contraseña`. Cuerpo:
+3. **Supabase → Authentication → Emails → Templates → Reset Password**: pega `docs/plantilla-reset-password-supabase.html` (asunto: `Tu código para restablecer tu contraseña`). El correo debe mostrar el código `{{ .Token }}` (la plantilla por defecto solo trae un enlace). Asunto sugerido: `Tu código para recuperar tu contraseña`. Cuerpo:
    ```html
    <h2>Recuperar contraseña</h2>
    <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta en El Golazo Club.</p>

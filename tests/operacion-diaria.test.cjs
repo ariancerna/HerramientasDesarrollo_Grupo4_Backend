@@ -179,6 +179,7 @@ test('AUTH-08 responde 429 al agotar intentos y 400 si el código no sirve', asy
   t.mock.method(require('../dist/lib/correo/correo'), 'hayProveedorCorreo', () => true);
   const verificar = t.mock.method(authRepo, 'verificarCodigo', async () => 'bloqueado');
   const token = t.mock.method(authRepo, 'guardarResetToken', async () => 'token');
+  t.mock.method(authRepo, 'obtenerUsuarioPorEmail', async () => null);
   await assert.rejects(auth.verifyCode('a@example.invalid', '000000'), { statusCode: 429 });
   verificar.mock.mockImplementation(async () => 'invalido');
   await assert.rejects(auth.verifyCode('a@example.invalid', '000000'), { statusCode: 400 });
