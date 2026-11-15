@@ -28,3 +28,10 @@ export async function resetPassword(req: Request, res: Response, next: NextFunct
     next(err);
   }
 }
+export async function listar(_req: Request, res: Response, next: NextFunction) {
+  try {
+    ok(res, await service.listarUsuarios());
+  } catch (err) {
+    next(err);
+  }
+}

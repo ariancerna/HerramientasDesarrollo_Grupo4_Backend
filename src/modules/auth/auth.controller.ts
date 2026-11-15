@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { created, ok } from '../../lib/utils/response';
 import * as service from './auth.service';
+import { categoriasDeSesion } from '../usuarios/usuarios.service';
 import { loginConGoogle, urlAutorizacionGoogle } from './auth.google';
 
 export async function login(req: Request, res: Response, next: NextFunction) {
@@ -23,8 +24,14 @@ export async function refresh(req: Request, res: Response, next: NextFunction) {
   }
 }
 
-export async function me(req: Request, res: Response) {
-  ok(res, req.user);
+export async function me(req: Request, res: Response, next: NextFunction) {
+  try {
+    // Las categorías se muestran en el menú lateral; si fallan, la sesión sigue funcionando.
+    const categorias = req.user ? await categoriasDeSesion(req.user).catch(() => []) : [];
+    ok(res, { ...req.user, categorias });
+  } catch (err) {
+    next(err);
+  }
 }
 
 export async function logout(req: Request, res: Response, next: NextFunction) {

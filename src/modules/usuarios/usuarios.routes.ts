@@ -7,6 +7,8 @@ import { alumnoCuentaParamsSchema, crearCuentaSchema, estadoSchema, resetPasswor
 
 const router = Router();
 
+// USR-04
+router.get('/', requireAuth, requireRole('ADM'), controller.listar);
 // USR-02
 router.patch('/:id/estado', requireAuth, requireRole('ADM'), validateParams(usuarioParamsSchema), validateBody(estadoSchema), controller.actualizarEstado);
 // USR-03

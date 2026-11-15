@@ -4,6 +4,7 @@ registerDocs({
   nombre: 'USR — Cuentas de acceso',
   responsable: 'Eduardo',
   endpoints: [
+    { id: 'USR-04', metodo: 'GET', ruta: '/usuarios', descripcion: 'Lista todas las cuentas (admin, profesores y alumnos) con rol, estado, categorías, último ingreso y métodos de acceso', acceso: 'ADM', implementado: true },
     { id: 'USR-02', metodo: 'PATCH', ruta: '/usuarios/:id/estado', descripcion: '{activo} bloquear / habilitar acceso', acceso: 'ADM', implementado: true },
     {
       id: 'USR-01', metodo: 'POST', ruta: '/alumnos/:id/cuenta',

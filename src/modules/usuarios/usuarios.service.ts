@@ -65,3 +65,51 @@ export async function resetearPassword(usuarioId: string, nuevaPassword: string)
   await repository.resetearPassword(usuarioId, nuevaPassword);
   return { mensaje: 'Contraseña restablecida correctamente.' };
 }
+
+type RolUsuario = 'ADM' | 'PROF' | 'ALU';
+
+/** USR-04 — listado de todas las cuentas con su rol, categorías y datos de acceso. */
+export async function listarUsuarios() {
+  const usuarios = await repository.listarUsuarios();
+  const alumnoIds = usuarios.map((u) => u.estudiante_id).filter((id): id is string => Boolean(id));
+  const profesorIds = usuarios.map((u) => u.profesor_id).filter((id): id is string => Boolean(id));
+
+  const [deAlumnos, deProfesores, acceso] = await Promise.all([
+    repository.categoriasDeAlumnos(alumnoIds),
+    repository.categoriasDeProfesores(profesorIds),
+    // Si Supabase Auth no responde, la lista se muestra igual sin último ingreso.
+    repository.datosDeAcceso().catch(() => new Map<string, { ultimoAcceso: string | null; proveedores: string[] }>()),
+  ]);
+
+  return usuarios.map((u) => {
+    const categorias =
+      u.rol === 'ALU' && u.estudiante_id ? [deAlumnos.get(u.estudiante_id)].filter((n): n is string => Boolean(n))
+        : u.rol === 'PROF' && u.profesor_id ? deProfesores.get(u.profesor_id) ?? []
+          : [];
+    const datos = acceso.get(u.id);
+    return {
+      id: u.id as string,
+      usuario: u.usuario as string,
+      nombre: u.nombre as string,
+      email: u.email as string,
+      rol: u.rol as RolUsuario,
+      activo: u.activo !== false,
+      createdAt: u.created_at as string,
+      categorias,
+      ultimoAcceso: datos?.ultimoAcceso ?? null,
+      proveedores: datos?.proveedores ?? [],
+    };
+  });
+}
+
+/** Categorías del usuario en sesión (menú lateral). El admin no tiene: ve todas. */
+export async function categoriasDeSesion(usuario: { rol: string; estudianteId?: string; profesorId?: string }) {
+  if (usuario.rol === 'ALU' && usuario.estudianteId) {
+    const nombre = (await repository.categoriasDeAlumnos([usuario.estudianteId])).get(usuario.estudianteId);
+    return nombre ? [nombre] : [];
+  }
+  if (usuario.rol === 'PROF' && usuario.profesorId) {
+    return (await repository.categoriasDeProfesores([usuario.profesorId])).get(usuario.profesorId) ?? [];
+  }
+  return [];
+}
