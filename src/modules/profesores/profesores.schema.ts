@@ -1,5 +1,7 @@
 import { z } from 'zod';
-const nombre = z.string().trim().min(1).max(150);
+// Nombre completo: solo letras (con tildes y ñ), espacios, apóstrofo, punto o guion.
+const nombre = z.string().trim().min(3, 'El nombre debe tener al menos 3 letras').max(150)
+  .regex(/^\p{L}[\p{L}' .-]*$/u, 'El nombre solo puede tener letras');
 const usuario = z.string().trim().toLowerCase().min(3).max(50).regex(/^[a-z0-9._-]+$/);
 const categoriaIds = z.array(z.string().uuid()).max(100).refine((ids) => new Set(ids).size === ids.length, 'No repitas categorias');
 export const profesorParamsSchema = z.object({ id: z.string().uuid() });
