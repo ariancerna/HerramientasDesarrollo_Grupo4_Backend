@@ -1,4 +1,5 @@
 import { ApiError } from '../../lib/errors/api-error';
+import { esFechaFutura } from '../../lib/utils/fechas';
 import type { AuthUser } from '../../types/express';
 import { findCategoriaIdsByProfesor } from '../alumnos/alumnos.repository';
 import * as repository from './evaluaciones.repository';
@@ -61,8 +62,14 @@ export async function listar(usuario: AuthUser, filtro: FiltroEvaluaciones) {
   return { data: await presentar(rows), meta: { page: filtro.page, limit: filtro.limit, total } };
 }
 
+/** Una evaluación registra algo que ya ocurrió: no puede tener fecha futura. */
+function sinFechaFutura(fecha: string) {
+  if (esFechaFutura(fecha)) throw ApiError.badRequest('La fecha de la evaluación no puede ser futura');
+}
+
 /** EVA-02 — el profesorId sale del token, nunca del cuerpo. */
 export async function crear(usuario: AuthUser, body: NuevaEvaluacion) {
+  sinFechaFutura(body.fecha);
   await validarAlumno(usuario, body.alumnoId);
   try {
     return (await presentar([await repository.create(profesorDe(usuario), body)]))[0];
@@ -71,6 +78,7 @@ export async function crear(usuario: AuthUser, body: NuevaEvaluacion) {
 
 /** EVA-03 */
 export async function editar(usuario: AuthUser, id: string, body: CambiosEvaluacion) {
+  if (body.fecha) sinFechaFutura(body.fecha);
   await propia(usuario, id);
   if (body.alumnoId) await validarAlumno(usuario, body.alumnoId);
   const row = await repository.update(id, body);

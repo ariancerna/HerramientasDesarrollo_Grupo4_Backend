@@ -117,6 +117,9 @@ export async function corregir(id: string, cambios: CambiosAsistencia) {
   if (cambios.metodo) update.metodo = cambios.metodo;
   if (cambios.fechaHora) {
     const instante = new Date(cambios.fechaHora);
+    if (instante.getTime() > Date.now() + 5 * 60 * 1000) {
+      throw ApiError.unprocessable('La fecha y hora no puede estar en el futuro');
+    }
     update.fecha_hora = instante.toISOString();
     update.fecha = fechaEnLima(instante);
     if (await repository.existeEnFecha(actual.alumno_id, update.fecha, id)) {
