@@ -44,3 +44,12 @@ export async function remove(id: string) {
   if (error) throw error;
   return data;
 }
+
+/** ¿Ya existe otra categoría con ese nombre? (sin distinguir mayúsculas ni espacios extremos) */
+export async function existeNombre(nombre: string, excluirId?: string) {
+  let query = supabaseAdmin.from('categorias').select('id').ilike('nombre', nombre.trim().replace(/[\\%_]/g, '\\$&')).limit(1);
+  if (excluirId) query = query.neq('id', excluirId);
+  const { data, error } = await query;
+  if (error) throw error;
+  return (data ?? []).length > 0;
+}

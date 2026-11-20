@@ -14,13 +14,18 @@ export const alumnosQuerySchema = z.object({
 
 export const alumnoParamsSchema = z.object({ id: z.string().uuid('El alumno debe tener un UUID válido') });
 
+/** Nombres y apellidos: solo letras (con tildes y ñ), espacios, apóstrofo, punto o guion. */
+const nombrePersona = (campo: string) => z.string().trim()
+  .min(2, `${campo} deben tener al menos 2 letras`)
+  .max(80, `${campo} no pueden superar los 80 caracteres`)
+  .regex(/^\p{L}[\p{L}' .-]*$/u, `${campo} solo pueden tener letras`);
 const dniSchema =z.string().regex(/^\d{8}$/, 'El DNI debe tener exactamente 8 dígitos');
 const telefonoSchema = z.string().regex(/^\d{9}$/, 'El teléfono debe tener exactamente 9 dígitos').optional();
 
 export const crearAlumnoSchema = z.object({
   dni: dniSchema,
-  nombres: z.string().trim().min(1, 'Los nombres son obligatorios'),
-  apellidos: z.string().trim().min(1, 'Los apellidos son obligatorios'),
+  nombres: nombrePersona('Los nombres'),
+  apellidos: nombrePersona('Los apellidos'),
   email: z.string().trim().email('El email no es válido'),
   // Decisión #4: si no se envía, el backend lo autogenera (GC-AAAA-NNN).
   codigo: z.string().trim().min(1, 'El código no puede estar vacío').optional(),
@@ -39,8 +44,8 @@ export const cambiarEstadoAlumnoSchema = z.object({
 });
 
 export const actualizarPerfilAlumnoSchema = z.object({
-  nombres: z.string().trim().min(1, 'Los nombres son obligatorios').optional(),
-  apellidos: z.string().trim().min(1, 'Los apellidos son obligatorios').optional(),
+  nombres: nombrePersona('Los nombres').optional(),
+  apellidos: nombrePersona('Los apellidos').optional(),
   email: z.string().trim().email('El email no es válido').optional(),
   telefono: z.string().regex(/^\d{9}$/, 'El teléfono debe tener exactamente 9 dígitos').optional(),
 });

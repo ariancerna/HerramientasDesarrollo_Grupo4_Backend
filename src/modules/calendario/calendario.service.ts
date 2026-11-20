@@ -1,5 +1,6 @@
 import { supabaseAdmin } from '../../config/supabase';
 import { ApiError } from '../../lib/errors/api-error';
+import { yaPasoEnLima } from '../../lib/utils/fechas';
 import type { AuthUser } from '../../types/express';
 import { findCategoriaIdsByProfesor } from '../alumnos/alumnos.repository';
 import { combinarActividades, contextoDashboard } from '../dashboard/dashboard.utils';
@@ -36,8 +37,11 @@ export async function listar(filtro: FiltroEventos) {
   return presentar(await repository.findAll(filtro));
 }
 
-/** CAL-02 */
+const MENSAJE_PASADO = 'No puedes programar un evento en una fecha u hora que ya pasó';
+
+/** CAL-02 — los eventos solo se programan a futuro. */
 export async function crear(body: NuevoEvento) {
+  if (yaPasoEnLima(body.fecha, body.horaInicio)) throw ApiError.badRequest(MENSAJE_PASADO);
   try { return (await presentar([await repository.create(body)]))[0]; } catch (error) { return errorBaseDatos(error); }
 }
 
@@ -48,6 +52,10 @@ export async function editar(id: string, body: CambiosEvento) {
   const inicio = body.horaInicio ?? actual.hora_inicio.slice(0, 5);
   const fin = body.horaFin === undefined ? actual.hora_fin?.slice(0, 5) : body.horaFin;
   if (fin && fin <= inicio) throw ApiError.badRequest('La hora final debe ser posterior a la inicial');
+  // Solo se valida si se cambia la fecha u hora: un evento pasado puede corregirse (título, descripción...).
+  const cambiaMomento = (body.fecha !== undefined && body.fecha !== actual.fecha)
+    || (body.horaInicio !== undefined && body.horaInicio !== actual.hora_inicio.slice(0, 5));
+  if (cambiaMomento && yaPasoEnLima(body.fecha ?? actual.fecha, inicio)) throw ApiError.badRequest(MENSAJE_PASADO);
   let row: EventoCompletoRow | null;
   try { row = await repository.update(id, body); } catch (error) { return errorBaseDatos(error); }
   if (!row) throw ApiError.notFound('Evento no encontrado');

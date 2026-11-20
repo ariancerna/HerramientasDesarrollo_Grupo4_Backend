@@ -23,6 +23,7 @@ test('CAT devuelve 404 y traduce relaciones bloqueantes a 409', async (t) => {
   t.mock.method(repo, 'findById', async () => null);
   t.mock.method(repo, 'update', async () => null);
   t.mock.method(repo, 'remove', async () => null);
+  t.mock.method(repo, 'existeNombre', async () => false);
   await assert.rejects(service.getById(id), { statusCode: 404 });
   await assert.rejects(service.update(id, { nombre: 'Sub-14' }), { statusCode: 404 });
   await assert.rejects(service.remove(id), { statusCode: 404 });

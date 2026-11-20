@@ -11,11 +11,19 @@ export async function getById(id: string) {
   return sede;
 }
 
+async function nombreLibre(nombre: unknown, excluirId?: string) {
+  if (typeof nombre === 'string' && await repository.existeNombre(nombre, excluirId)) {
+    throw ApiError.conflict(`Ya existe una sede llamada "${nombre.trim()}"`);
+  }
+}
+
 export async function create(payload: Record<string, unknown>) {
+  await nombreLibre(payload.nombre);
   return repository.create(payload);
 }
 
 export async function update(id: string, payload: Record<string, unknown>) {
+  await nombreLibre(payload.nombre, id);
   const sede = await repository.update(id, payload);
   if (!sede) throw ApiError.notFound('Sede no encontrada');
   return sede;

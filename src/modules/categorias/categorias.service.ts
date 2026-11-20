@@ -31,8 +31,15 @@ export async function getById(id: string) {
   if (!categoria) throw ApiError.notFound('Categoría no encontrada');
   return categoria;
 }
+async function nombreLibre(nombre: unknown, excluirId?: string) {
+  if (typeof nombre === 'string' && await repository.existeNombre(nombre, excluirId)) {
+    throw ApiError.conflict(`Ya existe una categoría llamada "${nombre.trim()}"`);
+  }
+}
+
 export async function create(payload: Record<string, unknown>) {
   const { horarios, ...datos } = payload as Record<string, unknown> & { horarios?: NuevoHorario[] };
+  await nombreLibre(datos.nombre);
   const categoria = await repository.create(datos);
   if (!horarios?.length) return categoria;
   try {
@@ -45,6 +52,7 @@ export async function create(payload: Record<string, unknown>) {
 }
 export async function update(id: string, payload: Record<string, unknown>) {
   const { horarios, ...datos } = payload as Record<string, unknown> & { horarios?: NuevoHorario[] };
+  await nombreLibre(datos.nombre, id);
   const categoria = Object.keys(datos).length ? await repository.update(id, datos) : await repository.findById(id);
   if (!categoria) throw ApiError.notFound('Categoría no encontrada');
   if (!horarios) return categoria;
