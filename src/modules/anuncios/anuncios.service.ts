@@ -99,7 +99,13 @@ export async function editar(usuario: AuthUser, id: string, body: CambiosAnuncio
   if (actual.estado === 'enviado' && body.estado === 'borrador') {
     throw ApiError.conflict('Un anuncio enviado no puede volver a borrador');
   }
-  await validarAlcance(usuario, body.destinatarios, body.categoriaId);
+  // Los alumnos ya recibieron la notificación: solo se corrige el texto.
+  if (actual.estado === 'enviado' && (body.destinatarios !== undefined || body.categoriaId !== undefined)) {
+    throw ApiError.conflict('No se pueden cambiar los destinatarios de un anuncio ya enviado; crea uno nuevo');
+  }
+  if (body.destinatarios !== undefined || body.categoriaId) {
+    await validarAlcance(usuario, body.destinatarios, body.categoriaId);
+  }
 
   const cambios: Parameters<typeof repository.update>[1] = {};
   if (body.titulo !== undefined) cambios.titulo = body.titulo;
